@@ -3,6 +3,8 @@
   import { fetchLocations, fetchServices } from '$lib/api';
   import { locations, services } from '$lib/stores';
   import ServiceCard from '$lib/components/ServiceCard.svelte';
+  import Hero from '$lib/components/Hero.svelte';
+  import StepsSection from '$lib/components/StepsSection.svelte';
   
   onMount(async () => {
     await Promise.all([
@@ -12,22 +14,8 @@
   });
 </script>
 
-<div class="bg-primary-700 text-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-    <div class="text-center">
-      <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
-        King Wash & Dry
-      </h1>
-      <p class="mt-6 max-w-2xl mx-auto text-xl">
-        Professional laundry services in the Dallas-Fort Worth area.
-      </p>
-      <div class="mt-10 flex justify-center">
-        <a href="/locations" class="btn btn-primary text-lg px-8 py-3 mr-4">Find a Location</a>
-        <a href="/services" class="btn bg-white text-primary-700 hover:bg-gray-100 text-lg px-8 py-3">Our Services</a>
-      </div>
-    </div>
-  </div>
-</div>
+<Hero />
+<StepsSection />
 
 <div class="bg-primary-50 py-12">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -134,3 +122,134 @@
     </div>
   </div>
 </section>
+
+<style>
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-up-delay {
+    animation: fadeInUp 0.6s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-up-delay-2 {
+    animation: fadeInUp 0.6s ease-out 0.4s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-up-delay-3 {
+    animation: fadeInUp 0.6s ease-out 0.6s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 1s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slide-in {
+    animation: slideIn 4s linear infinite;
+  }
+
+  @keyframes bounceUp {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-bounce-up {
+    animation: bounceUp 2s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes bubble {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-40px) scale(0.5);
+      opacity: 0;
+    }
+  }
+
+  .animate-bubble-1 {
+    animation: bubble 2s ease-in-out infinite;
+  }
+
+  .animate-bubble-2 {
+    animation: bubble 2s ease-in-out 0.6s infinite;
+  }
+
+  .animate-bubble-3 {
+    animation: bubble 2s ease-in-out 1.2s infinite;
+  }
+
+  @keyframes vanMovement {
+    0% { transform: translateX(0%); }
+    40% { transform: translateX(45%); }
+    45% { transform: translateX(45%); }
+    85% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .animate-van-movement {
+    animation: vanMovement 6s linear infinite;
+  }
+
+  @keyframes basketMove {
+    0%, 39%, 86%, 100% { opacity: 1; transform: translateY(0); }
+    40%, 85% { opacity: 0; transform: translateY(-20px); }
+  }
+
+  .animate-basket {
+    animation: basketMove 6s linear infinite;
+  }
+</style>
