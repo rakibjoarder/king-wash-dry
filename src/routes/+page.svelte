@@ -5,6 +5,7 @@
   import ServiceCard from '$lib/components/ServiceCard.svelte';
   import Hero from '$lib/components/Hero.svelte';
   import StepsSection from '$lib/components/StepsSection.svelte';
+  import CommercialPreview from '$lib/components/CommercialPreview.svelte';
   
   onMount(async () => {
     await Promise.all([
@@ -16,6 +17,7 @@
 
 <Hero />
 <StepsSection />
+<CommercialPreview />
 
 <div class="bg-primary-50 py-12">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
