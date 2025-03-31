@@ -6,6 +6,7 @@
   import Hero from '$lib/components/Hero.svelte';
   import StepsSection from '$lib/components/StepsSection.svelte';
   import CommercialPreview from '$lib/components/CommercialPreview.svelte';
+  import LocationsSection from '$lib/components/LocationsSection.svelte';
   
   onMount(async () => {
     await Promise.all([
@@ -18,7 +19,8 @@
 <Hero />
 <StepsSection />
 <CommercialPreview />
-
+<LocationsSection />
+<!-- 
 <div class="bg-primary-50 py-12">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="lg:flex lg:items-center lg:justify-between">
@@ -62,68 +64,10 @@
     </div>
   </div>
 </section>
+ -->
 
-<section class="py-12 bg-gray-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center">
-      <h2 class="text-3xl font-extrabold text-gray-900">Why Choose King Wash & Dry?</h2>
-    </div>
-    
-    <div class="mt-10 grid gap-8 grid-cols-1 md:grid-cols-3">
-      <div class="text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-md bg-primary-600 text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <h3 class="mt-4 text-xl font-medium text-gray-900">Fast Turnaround</h3>
-        <p class="mt-2 text-base text-gray-500">
-          Get your laundry back quickly with our efficient service.
-        </p>
-      </div>
-      
-      <div class="text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-md bg-primary-600 text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-        </div>
-        <h3 class="mt-4 text-xl font-medium text-gray-900">Quality Care</h3>
-        <p class="mt-2 text-base text-gray-500">
-          We treat your clothes with the care they deserve.
-        </p>
-      </div>
-      
-      <div class="text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-md bg-primary-600 text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        </div>
-        <h3 class="mt-4 text-xl font-medium text-gray-900">Affordable Pricing</h3>
-        <p class="mt-2 text-base text-gray-500">
-          Competitive rates without compromising on quality.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
 
-<section class="py-12 bg-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center">
-      <h2 class="text-3xl font-extrabold text-gray-900">Our Locations</h2>
-      <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-        Find a King Wash & Dry location near you.
-      </p>
-    </div>
-    
-    <div class="mt-10 text-center">
-      <p class="text-lg text-gray-600">We have 5 convenient locations across the Dallas-Fort Worth area.</p>
-      <a href="/locations" class="mt-6 inline-block btn btn-primary">View All Locations</a>
-    </div>
-  </div>
-</section>
+
 
 <style>
   @keyframes fadeInUp {
