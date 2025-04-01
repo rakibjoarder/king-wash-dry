@@ -96,7 +96,7 @@
       </div>
 
       <!-- Quick Links -->
-      <div>
+      <!-- <div>
         <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
         <ul class="space-y-2">
           <li><a href="/" class="text-gray-400 hover:text-white transition-colors duration-300">Home</a></li>
@@ -104,7 +104,7 @@
           <li><a href="/locations" class="text-gray-400 hover:text-white transition-colors duration-300">Locations</a></li>
           <li><a href="/contact" class="text-gray-400 hover:text-white transition-colors duration-300">Contact</a></li>
         </ul>
-      </div>
+      </div> -->
 
       <!-- Services -->
       <div>
