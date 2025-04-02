@@ -3,9 +3,14 @@
   import { currentUser } from '$lib/stores';
   import { supabase } from '$lib/supabase';
   import { onMount } from 'svelte';
+  import LoginModal from '$lib/components/LoginModal.svelte';
+  import RegisterModal from '$lib/components/RegisterModal.svelte';
   
   let isMenuOpen = false;
   let isUserMenuOpen = false;
+  let showLoginModal = false;
+  let showRegisterModal = false;
+  let user = null;
   
   function toggleMenu() {
     isMenuOpen = !isMenuOpen;
@@ -42,6 +47,29 @@
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   });
+
+  // Check auth state
+  supabase.auth.onAuthStateChange((_, session) => {
+    user = session?.user ?? null;
+  });
+
+  function handleLoginSuccess() {
+    showLoginModal = false;
+  }
+
+  function handleRegisterSuccess() {
+    showRegisterModal = false;
+  }
+
+  function switchToRegister() {
+    showLoginModal = false;
+    showRegisterModal = true;
+  }
+
+  function switchToLogin() {
+    showRegisterModal = false;
+    showLoginModal = true;
+  }
 </script>
 
 <header 
@@ -172,18 +200,21 @@
             {/if}
           </div>
         {:else}
-          <a href="/login" 
-             class="text-gray-600 hover:text-blue-600 px-4 py-2 rounded-md text-sm font-medium 
-                    transition-colors duration-200">
+          <button 
+            on:click={() => showLoginModal = true}
+            class="text-gray-600 hover:text-blue-600 px-4 py-2 rounded-md text-sm font-medium 
+                   transition-colors duration-200">
             Sign In
-          </a>
-          <a href="/register" 
-             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium 
-                    rounded-md text-white bg-gradient-to-r from-blue-600 to-blue-500 
-                    hover:from-blue-700 hover:to-blue-600 transition-all duration-300 
-                    shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+          </button>
+          <button 
+            on:click={() => showRegisterModal = true}
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium 
+                   rounded-md text-white bg-gradient-to-r from-blue-600 to-blue-500 
+                   hover:from-blue-700 hover:to-blue-600 transition-all duration-300 
+                   shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+          >
             Create Account
-          </a>
+          </button>
         {/if}
       </div>
 
@@ -271,4 +302,20 @@
       </div>
     {/if}
   </nav>
-</header> 
+</header>
+
+{#if showLoginModal}
+  <LoginModal 
+    on:close={() => showLoginModal = false}
+    on:success={handleLoginSuccess}
+    on:switchToRegister={switchToRegister}
+  />
+{/if}
+
+{#if showRegisterModal}
+  <RegisterModal 
+    on:close={() => showRegisterModal = false}
+    on:success={handleRegisterSuccess}
+    on:switchToLogin={switchToLogin}
+  />
+{/if} 
