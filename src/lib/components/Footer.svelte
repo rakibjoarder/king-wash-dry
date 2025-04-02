@@ -51,7 +51,19 @@
     <div class="grid grid-cols-1 md:grid-cols-5 gap-8">
       <!-- Company Info -->
       <div class="space-y-4 md:col-span-2">
-        <h3 class="text-xl font-bold">King Wash & Dry</h3>
+        <!-- Logo and Company Name -->
+        <div class="flex items-center space-x-3">
+          <img 
+            src="/images/logo.png" 
+            alt="King Wash & Dry Logo" 
+            class="h-20 w-auto"
+          />
+          <div>
+            <h3 class="text-xl font-bold">King Wash & Dry</h3>
+            <p class="text-sm text-gray-400">Professional Laundry Services</p>
+          </div>
+        </div>
+        
         <p class="text-gray-400">Professional laundry services in the Dallas-Fort Worth area.</p>
         <div class="flex space-x-4">
           {#each socials as social}
