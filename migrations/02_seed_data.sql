@@ -9,10 +9,8 @@ INSERT INTO locations (name, address, city, state, zip, phone, hours) VALUES
 -- Seed services
 INSERT INTO services (name, description, price, turnaround_time) VALUES
 ('Wash & Fold', 'Our standard wash and fold service for everyday laundry.', 1.99, '24 hours'),
-('Dry Cleaning', 'Professional dry cleaning for delicate garments.', 4.99, '48 hours'),
 ('Express Service', 'Same-day service for urgent laundry needs.', 2.99, '6 hours'),
 ('Comforter Cleaning', 'Deep cleaning for comforters, duvets, and blankets.', 14.99, '48 hours'),
-('Business Shirts', 'Wash, press, and hang service for business shirts.', 2.49, '24 hours');
 
 -- Seed customers
 INSERT INTO customers (first_name, last_name, email, phone, address, city, state, zip) VALUES

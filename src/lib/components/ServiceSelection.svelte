@@ -3,6 +3,7 @@
   
   // Export the selected service ID
   export let selectedServiceId: string = '';
+  export let onSelect: (serviceId: string) => void = () => {};
   
   // Handle service selection
   function selectService(id: string) {
@@ -17,7 +18,10 @@
     {#each $services as service}
       <div 
         class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md {selectedServiceId === service.id.toString() ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}"
-        on:click={() => selectService(service.id.toString())}
+        on:click={() => {
+          selectedServiceId = service.id.toString();
+          onSelect(service.id.toString());
+        }}
       >
         <div class="flex items-center">
           <div class="text-primary-500 mr-4 flex-shrink-0">

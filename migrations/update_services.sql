@@ -4,13 +4,15 @@ SET description = 'Professional washing and folding service for your everyday la
 WHERE name LIKE '%Wash & Fold%';
 
 UPDATE services 
-SET description = 'Special care for your delicate and formal garments'
-WHERE name LIKE '%Dry Cleaning%';
-
-UPDATE services 
 SET description = 'Full-service washing and professional ironing for a crisp finish'
 WHERE name LIKE '%Wash & Iron%';
 
+-- Rename Express/Same Day service and update its description
 UPDATE services 
-SET description = 'Quick turnaround service when you need your laundry in a hurry'
-WHERE name LIKE '%Express%' OR name LIKE '%Same Day%'; 
+SET name = 'Express Wash & Fold',
+    description = 'Same day wash & fold service when you need your laundry in a hurry'
+WHERE id=3;
+
+-- Remove dry cleaning service
+DELETE FROM services 
+WHERE name LIKE '%Dry Cleaning%'; 
