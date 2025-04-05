@@ -9,6 +9,7 @@
   import ItemSelector from './ItemSelector.svelte';
   import OrderReview from './OrderReview.svelte';
   import LocationCard from './LocationCard.svelte';
+  import LoginModal from './LoginModal.svelte';
   
   // Update steps order
   const steps = ['Select Service', 'Schedule Pickup & Delivery', 'Preferences', 'Delivery Details', 'Review & Submit'];
@@ -20,7 +21,22 @@
   let itemTypes: Array<any> = [];
   let lastFetchedServiceId: string | null = null;
   
-  let preferences = {
+  interface LaundryPreferences {
+    waterTemperature: 'hot' | 'cold';
+    dryingLevel: 'regular' | 'low';
+    detergent: 'scented' | 'hypoallergenic';
+    additionalServices: {
+      babyCare: boolean;
+      bleach: boolean;
+      darkProtect: boolean;
+      fabricSoftener: boolean;
+      scentBooster: boolean;
+      hangingService: boolean;
+    };
+    specialInstructions: string;
+  }
+
+  let preferences: LaundryPreferences = {
     waterTemperature: 'cold',
     dryingLevel: 'regular',
     detergent: 'scented',
@@ -37,8 +53,26 @@
   
   type ServiceType = 'pickup_and_dropoff' | 'pickup_only' | 'dropoff_only' | 'self_service';
 
-  let formData = {
+  interface FormData {
+    service_type: ServiceType;
+    service_id: string;
+    pickup_address: string;
+    pickup_city: string;
+    pickup_zip: string;
+    dropoff_address: string;
+    dropoff_city: string;
+    dropoff_zip: string;
+    pickup_date: string;
+    pickup_time: string;
+    drop_off_date: string;
+    drop_off_time: string;
+    weight: number;
+    delivery_instructions?: string;
+  }
+
+  let formData: FormData = {
     service_type: '' as ServiceType,
+    service_id: '',
     pickup_address: '',
     pickup_city: '',
     pickup_zip: '',
@@ -48,7 +82,8 @@
     pickup_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     pickup_time: '9AM - 11AM',
     drop_off_date: new Date().toISOString().split('T')[0],
-    drop_off_time: '9AM - 11AM'
+    drop_off_time: '9AM - 11AM',
+    weight: 0
   };
   
   let loading = false;
@@ -66,6 +101,80 @@
   
   // Add this near your other state variables
   let sameAddress = true; // Default to true since most users will have same address
+  
+  // Add showLoginModal state
+  let showLoginModal = false;
+  
+  // Add function to save state
+  function saveFormState() {
+    const state = {
+      currentStep,
+      formData,
+      preferences,
+      selectedItems,
+      sameAddress
+    };
+    localStorage.setItem('orderFormState', JSON.stringify(state));
+  }
+
+  // Add function to restore state
+  function restoreFormState() {
+    const savedState = localStorage.getItem('orderFormState');
+    if (savedState) {
+      const state = JSON.parse(savedState);
+      currentStep = state.currentStep;
+      formData = state.formData;
+      preferences = state.preferences;
+      selectedItems = state.selectedItems;
+      sameAddress = state.sameAddress;
+      localStorage.removeItem('orderFormState'); // Clear the saved state
+    }
+  }
+  
+  // Modify onMount to check for saved state
+  onMount(async () => {
+    try {
+      await Promise.all([
+        fetchLocations(),
+        fetchServices()
+      ]);
+
+      // Check for auth state and saved form state
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        restoreFormState();
+      }
+      
+      currentStepValid = validateStep(currentStep);
+    } catch (error) {
+      console.error('Error initializing order form:', error);
+    }
+  });
+  
+  // Add handleLoginSuccess function
+  async function handleLoginSuccess() {
+    showLoginModal = false;
+    // Get the latest session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session && currentStep === 2) {
+      currentStep = 3;
+      currentStepValid = validateStep(currentStep);
+      
+      // Scroll to the next step
+      setTimeout(() => {
+        if (stepSections[currentStep]) {
+          const yOffset = -80;
+          const element = stepSections[currentStep];
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          
+          window.scrollTo({
+            top: y,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }
   
   // Calculate total price function
   function calculateEstimatedPrice() {
@@ -96,28 +205,8 @@
     currentStepValid = validateStep(currentStep);
   }
   
-  // Check if user is logged in
-  onMount(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      goto('/login?redirect=/order');
-      return;
-    }
-
-    try {
-      await Promise.all([
-        fetchLocations(),
-        fetchServices()
-      ]);
-      
-      currentStepValid = validateStep(currentStep);
-    } catch (error) {
-      console.error('Error initializing order form:', error);
-    }
-  });
-  
   // Fetch items from database based on selected service
-  async function fetchItems(serviceId = null) {
+  async function fetchItems(serviceId: string | null = null) {
     try {
       let query = supabase.from('items').select('*');
       
@@ -190,11 +279,21 @@
     }
   }
   
-  // Navigation functions
-  function handleNextClick() {
+  // Modify handleNextClick to save state before showing login modal
+  async function handleNextClick() {
     if (currentStepValid) {
-      if (currentStep === 2) { // If on Preferences step
-        currentStep = 3; // Go directly to Review
+      // Check for authentication after preferences step (step 2)
+      if (currentStep === 2) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          saveFormState(); // Save state before showing login modal
+          showLoginModal = true;
+          return;
+        }
+      }
+
+      if (currentStep === 2) {
+        currentStep = 3;
       } else {
         currentStep += 1;
       }
@@ -238,10 +337,11 @@
     }
   }
   
-  // Handle form submission
+  // Modify handleSubmit to save state before showing login modal
   async function handleSubmit() {
     if (!$currentUser) {
-      goto('/login?redirect=/order');
+      saveFormState(); // Save state before showing login modal
+      showLoginModal = true;
       return;
     }
     
@@ -258,15 +358,31 @@
 
       console.log(orderData);
       
-      const order = await addOrder(orderData);
+      // Create customer data object for the order
+      const customerData = {
+        user_id: $currentUser.id,
+        email: $currentUser.email,
+        pickup_address: formData.pickup_address,
+        pickup_city: formData.pickup_city,
+        pickup_zip: formData.pickup_zip,
+        dropoff_address: formData.dropoff_address,
+        dropoff_city: formData.dropoff_city,
+        dropoff_zip: formData.dropoff_zip
+      };
+      
+      const order = await addOrder(customerData, orderData);
       
       if (order) {
         success = true;
         goto(`/account?order=${order.id}`);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error submitting order:', err);
-      error = 'There was an error submitting your order. Please try again.';
+      if (err instanceof Error) {
+        error = err.message;
+      } else {
+        error = 'There was an error submitting your order. Please try again.';
+      }
     } finally {
       loading = false;
     }
@@ -282,8 +398,28 @@
     }
   }
   
+  interface OrderData {
+    service_type: ServiceType;
+    service_id: string;
+    pickup_address: string;
+    pickup_city: string;
+    pickup_zip: string;
+    dropoff_address: string;
+    dropoff_city: string;
+    dropoff_zip: string;
+    pickup_date: string;
+    pickup_time: string;
+    drop_off_date: string;
+    drop_off_time: string;
+    weight: number;
+    preferences: string;
+    items: string;
+    total_price: number;
+    delivery_instructions?: string;
+  }
+
   // Submit order with payment
-  async function submitOrderWithPayment(orderData) {
+  async function submitOrderWithPayment(orderData: OrderData) {
     try {
       // Create order
       const response = await fetch('/api/orders', {
@@ -304,11 +440,12 @@
         success: true,
         orderId: result.id
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Order submission error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
       return {
         success: false,
-        error: error.message || 'Failed to create order'
+        error: errorMessage
       };
     }
   }
@@ -889,6 +1026,14 @@
     </div>
   {/if}
 </div>
+
+<!-- Add LoginModal at the bottom of the template -->
+{#if showLoginModal}
+  <LoginModal 
+    on:close={() => showLoginModal = false}
+    on:success={handleLoginSuccess}
+  />
+{/if}
 
 <style>
   /* Hide scrollbar but keep functionality */

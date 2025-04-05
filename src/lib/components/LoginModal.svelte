@@ -37,10 +37,11 @@
     try {
       loading = true;
       error = null;
-      const { data, error: signInError } = await supabase.auth.signInWithOAuth({
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: window.location.href,
+          skipBrowserRedirect: false
         }
       });
 

@@ -95,7 +95,7 @@
 
       <!-- Navigation Links -->
       <div class="hidden lg:flex lg:space-x-1">
-        {#each ['Home', 'Services', 'Commercial', 'Locations'] as link}
+        {#each ['Home', 'Commercial', 'Locations'] as link}
           <a 
             href={link === 'Home' ? '/' : `/${link.toLowerCase()}`}
             class="group relative px-4 py-2 text-sm font-medium transition-colors duration-200
@@ -111,21 +111,32 @@
         {/each}
         
         {#if $currentUser}
-          {#each ['Schedule Pickup', 'Orders'] as link}
-            <a 
-              href="/{link.toLowerCase().replace(' ', '')}"
-              class="group relative px-4 py-2 text-sm font-medium transition-colors duration-200
-                     {$page.url.pathname === '/' + link.toLowerCase().replace(' ', '') ? 
-                     'text-blue-600' : 'text-gray-600 hover:text-blue-600'}"
-            >
-              {link}
-              <span class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 transform scale-x-0 
-                           transition-transform duration-200 group-hover:scale-x-100
-                           {$page.url.pathname === '/' + link.toLowerCase().replace(' ', '') ? 'scale-x-100' : ''}">
-              </span>
-            </a>
-          {/each}
+          <a 
+            href="/orders"
+            class="group relative px-4 py-2 text-sm font-medium transition-colors duration-200
+                   {$page.url.pathname === '/orders' ? 
+                   'text-blue-600' : 'text-gray-600 hover:text-blue-600'}"
+          >
+            Orders
+            <span class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 transform scale-x-0 
+                         transition-transform duration-200 group-hover:scale-x-100
+                         {$page.url.pathname === '/orders' ? 'scale-x-100' : ''}">
+            </span>
+          </a>
         {/if}
+
+        <a 
+          href="/order"
+          class="group relative px-4 py-2 text-sm font-medium transition-colors duration-200
+                 {$page.url.pathname === '/order' ? 
+                 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}"
+        >
+          Schedule Pickup
+          <span class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 transform scale-x-0 
+                       transition-transform duration-200 group-hover:scale-x-100
+                       {$page.url.pathname === '/order' ? 'scale-x-100' : ''}">
+          </span>
+        </a>
       </div>
 
       <!-- Right Side: Auth & Contact -->
@@ -239,7 +250,7 @@
       <div class="lg:hidden py-2 transform transition-all duration-300 ease-out">
         <!-- Mobile Navigation Links -->
         <div class="space-y-1 pb-3 pt-2">
-          {#each ['Home', 'Services', 'Commercial', 'Locations'] as link}
+          {#each ['Home', 'Commercial', 'Locations'] as link}
             <a 
               href={link === 'Home' ? '/' : `/${link.toLowerCase()}`}
               class="block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200
@@ -251,17 +262,24 @@
           {/each}
           
           {#if $currentUser}
-            {#each ['Schedule Pickup', 'Orders'] as link}
-              <a 
-                href="/{link.toLowerCase().replace(' ', '')}"
-                class="block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200
-                       {$page.url.pathname === '/' + link.toLowerCase().replace(' ', '') ? 
-                       'text-blue-600 bg-blue-50' : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'}"
-              >
-                {link}
-              </a>
-            {/each}
+            <a 
+              href="/orders"
+              class="block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200
+                     {$page.url.pathname === '/orders' ? 
+                     'text-blue-600 bg-blue-50' : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'}"
+            >
+              Orders
+            </a>
           {/if}
+
+          <a 
+            href="/order"
+            class="block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200
+                   {$page.url.pathname === '/order' ? 
+                   'text-blue-600 bg-blue-50' : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'}"
+          >
+            Schedule Pickup
+          </a>
         </div>
 
         <!-- Mobile Auth Section -->

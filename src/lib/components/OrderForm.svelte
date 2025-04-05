@@ -7,6 +7,42 @@
   import ServiceSelection from './ServiceSelection.svelte';
   import LaundryPreferences from './LaundryPreferences.svelte';
   import LocationCard from './LocationCard.svelte';
+  import LoginModal from './LoginModal.svelte';
+  
+  interface Item {
+    id: string;
+    name: string;
+    avgWeight: number;
+    icon: string;
+    quantity: number;
+  }
+
+  interface CustomerData {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    user_id?: string;
+  }
+  
+  interface LaundryPreferencesType {
+    waterTemperature: 'hot' | 'cold';
+    dryingLevel: 'regular' | 'low';
+    detergent: 'scented' | 'hypoallergenic';
+    additionalServices: {
+      babyCare: boolean;
+      bleach: boolean;
+      darkProtect: boolean;
+      fabricSoftener: boolean;
+      scentBooster: boolean;
+      hangingService: boolean;
+    };
+    specialInstructions: string;
+  }
   
   // Define item types
   const itemTypes = [
@@ -21,13 +57,13 @@
   ];
   
   // Items in the order
-  let selectedItems = itemTypes.map(item => ({
+  let selectedItems: Item[] = itemTypes.map(item => ({
     ...item,
     quantity: 0
   }));
   
-  // Add laundry preferences object
-  let preferences = {
+  // Add laundry preferences object with proper types
+  let preferences: LaundryPreferencesType = {
     waterTemperature: 'cold',
     dryingLevel: 'regular',
     detergent: 'scented',
@@ -65,6 +101,7 @@
   let success = false;
   let error = '';
   let manualWeightEntry = false;
+  let showLoginModal = false;
   
   onMount(async () => {
     // Check if user is logged in
@@ -121,7 +158,7 @@
     }
   }
   
-  function updateItemQuantity(itemId, change) {
+  function updateItemQuantity(itemId: string, change: number) {
     selectedItems = selectedItems.map(item => {
       if (item.id === itemId) {
         const newQuantity = Math.max(0, item.quantity + change);
@@ -167,8 +204,20 @@
     return basePrice + additionalCosts;
   }
   
-  // Update the handleSubmit function to include preferences in the order notes
+  // Add handleLoginSuccess function
+  function handleLoginSuccess() {
+    showLoginModal = false;
+  }
+  
+  // Modify handleSubmit function to check login first
   async function handleSubmit() {
+    // Check if user is logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      showLoginModal = true;
+      return;
+    }
+
     loading = true;
     error = '';
     success = false;
@@ -220,7 +269,7 @@
       }
       
       // Create customer data object
-      const customerData = {
+      const customerData: CustomerData = {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
@@ -263,15 +312,19 @@
           goto('/account');
         }, 2000);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error submitting order:', err);
-      error = err.message || 'An error occurred while submitting your order. Please try again.';
+      if (err instanceof Error) {
+        error = err.message;
+      } else {
+        error = 'An error occurred while submitting your order. Please try again.';
+      }
     } finally {
       loading = false;
     }
   }
   
-  function getItemIcon(iconName) {
+  function getItemIcon(iconName: string): string {
     switch(iconName) {
       case 'shirt':
         return `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 2L2 8l4 2m12-8l4 6-4 2M5 12v8a2 2 0 002 2h10a2 2 0 002-2v-8" /></svg>`;
@@ -629,4 +682,12 @@
       </form>
     </div>
   {/if}
-</div> 
+</div>
+
+<!-- Add LoginModal at the bottom of the template -->
+{#if showLoginModal}
+  <LoginModal 
+    on:close={() => showLoginModal = false}
+    on:success={handleLoginSuccess}
+  />
+{/if} 

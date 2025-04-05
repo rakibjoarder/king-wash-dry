@@ -40,8 +40,11 @@
             You can use our services in any convenient way – the choice is yours.
           </p>
         </div>
-        <a href="/order" class="mt-8 inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-[#e11d48] hover:bg-[#be123c]">
+        <a href="/order" class="mt-8 inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-[#e11d48] hover:bg-[#be123c] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e11d48]">
           Schedule Pickup
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
         </a>
 
         <!-- Reviews Section -->
