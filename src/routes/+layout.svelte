@@ -57,8 +57,6 @@
       }
       
       const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state changed:', event, session?.user, session);
-        
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           currentUser.set(session?.user || null);
           if (session?.user && session.user.app_metadata?.provider === 'google') {
