@@ -2,13 +2,76 @@
   import { services } from '$lib/stores';
   import { calculateAdditionalCosts, getAdditionalServicesCostBreakdown } from '$lib/utils/pricing';
   import { onMount } from 'svelte';
+  import { supabase } from '$lib/supabase';
+  import { currentUser } from '$lib/stores';
   import StripePayment from './StripePayment.svelte';
   
+  interface CustomerData {
+    id: number;
+    user_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+  }
+
+  interface PaymentComponent {
+    processPayment: () => Promise<{ success: boolean; error?: string; paymentMethod?: string }>;
+  }
+
+  interface PaymentReadyEvent {
+    detail: {
+      paymentIntentId: string;
+    };
+  }
+
   export let formData: any;
   export let preferences: any;
   export let selectedItems: any[];
   export let calculateEstimatedPrice: () => number;
   export let onSubmitOrder: (data: any) => Promise<any>;
+  
+  let customerData: CustomerData | null = null;
+  let loading = true;
+  let paymentComponent: PaymentComponent;
+  
+  onMount(async () => {
+    try {
+      // Get current user's session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Fetch customer data
+        const { data, error } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching customer:', error);
+        } else if (data) {
+          customerData = data;
+          // Pre-fill form data with customer information
+          formData = {
+            ...formData,
+            first_name: data.first_name || formData.first_name,
+            last_name: data.last_name || formData.last_name,
+            email: data.email || formData.email,
+            phone: data.phone || formData.phone,
+            address: data.address || formData.address,
+            city: data.city || formData.city,
+            state: data.state || formData.state,
+            zip: data.zip || formData.zip
+          };
+        }
+      }
+    } catch (err) {
+      console.error('Error loading customer data:', err);
+    } finally {
+      loading = false;
+    }
+  });
   
   $: selectedService = $services.find(s => s.id.toString() === formData.service_id);
   $: totalPrice = calculateEstimatedPrice();
@@ -113,12 +176,12 @@
   }
   
   // Set tip percentage
-  function setTip(percentage) {
+  function setTip(percentage: number): void {
     tipPercentage = percentage;
   }
   
   // Format date for display
-  function formatDate(dateString) {
+  function formatDate(dateString: string): string {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -129,7 +192,7 @@
   }
   
   // Format time for display
-  function formatTime(timeString) {
+  function formatTime(timeString: string): string {
     if (!timeString) return '';
     const [hours, minutes] = timeString.split(':');
     const hour = parseInt(hours);
@@ -139,8 +202,8 @@
   }
   
   // Get time slot label
-  function getTimeSlotLabel(timeValue) {
-    const timeSlots = {
+  function getTimeSlotLabel(timeValue: string): string {
+    const timeSlots: Record<string, string> = {
       '08:00': '8:00 AM - 10:00 AM',
       '10:00': '10:00 AM - 12:00 PM',
       '12:00': '12:00 PM - 2:00 PM',
@@ -152,7 +215,7 @@
   }
   
   // Helper function to get item icons
-  function getItemIcon(iconName) {
+  function getItemIcon(iconName: string): string {
     switch (iconName) {
       case 'shirt':
         return `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -198,19 +261,18 @@
   }
   
   // Payment state
-  let paymentComponent;
   let isProcessingPayment = false;
   let paymentError = '';
   let paymentSuccess = false;
   let paymentIntentId = '';
   
   // Handle payment ready event
-  function handlePaymentReady(event) {
+  function handlePaymentReady(event: PaymentReadyEvent): void {
     paymentIntentId = event.detail.paymentIntentId;
   }
   
   // Process payment and submit order
-  async function handleSubmitOrder() {
+  async function handleSubmitOrder(): Promise<void> {
     if (isProcessingPayment) return;
     
     isProcessingPayment = true;
@@ -260,13 +322,83 @@
       } else {
         paymentError = orderResult.error || 'Failed to create your order. Please try again.';
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Order submission error:', error);
-      paymentError = error.message || 'Failed to process your order. Please try again.';
+      if (error instanceof Error) {
+        paymentError = error.message;
+      } else {
+        paymentError = 'Failed to process your order. Please try again.';
+      }
     } finally {
       isProcessingPayment = false;
     }
   }
+
+  let phoneError = '';
+  let isUpdatingPhone = false;
+  let tempPhone = ''; // Temporary phone number storage
+  let isEditingPhone = false;
+
+  function formatPhoneNumber(value: string) {
+    if (!value) return value;
+    const phoneNumber = value.replace(/[^\d]/g, '');
+    if (phoneNumber.length < 4) return `(${phoneNumber}`;
+    if (phoneNumber.length < 7) return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+  }
+
+  function handlePhoneInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const value = input.value;
+    const numbers = value.replace(/[^\d]/g, '');
+    
+    if (numbers.length <= 10) {
+      tempPhone = formatPhoneNumber(value);
+    }
+  }
+
+  async function updatePhoneNumber() {
+    if (!tempPhone || !tempPhone.match(/^\(\d{3}\) \d{3}-\d{4}$/)) {
+      phoneError = 'Please enter a valid phone number in the format (555) 555-5555';
+      return;
+    }
+
+    isUpdatingPhone = true;
+    phoneError = '';
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        phoneError = 'You must be logged in to update your phone number';
+        return;
+      }
+
+      const { error } = await supabase
+        .from('customers')
+        .update({ phone: tempPhone })
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        console.error('Error updating phone number:', error);
+        phoneError = 'Failed to update phone number. Please try again.';
+      } else {
+        formData.phone = tempPhone; // Only update formData after successful save
+        isEditingPhone = false; // Exit edit mode after successful save
+      }
+    } catch (err) {
+      console.error('Error updating phone number:', err);
+      phoneError = 'An unexpected error occurred. Please try again.';
+    } finally {
+      isUpdatingPhone = false;
+    }
+  }
+
+  // Disable the Place Order button if phone number is missing
+  $: canPlaceOrder = formData.phone && !isProcessingPayment && paymentComponent;
+
+  // Add reactive statement for customer name and email
+  $: customerName = customerData ? `${customerData.first_name} ${customerData.last_name}` : '';
+  $: customerEmail = customerData?.email || $currentUser?.email || '';
 </script>
 
 <div class="space-y-6">
@@ -399,20 +531,40 @@
           </div>
           <h3 class="text-lg font-medium text-gray-900">Schedule</h3>
         </div>
+
+        <!-- Service Promise Banner -->
+        <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 mb-4">
+          <div class="flex items-start space-x-3">
+            <div class="bg-white p-2 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-primary-800 font-medium mb-1">Our Service Promise</h4>
+              <p class="text-sm text-gray-600 leading-relaxed">
+                We'll send you a confirmation call before pickup and delivery. Our professional team will handle your laundry with care, and you'll receive updates throughout the process.
+              </p>
+            </div>
+          </div>
+        </div>
         
         <div class="bg-white rounded-xl shadow-sm border border-gray-100">
           <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
             <!-- Pickup Details -->
             <div class="p-4">
-              <div class="flex items-center mb-2">
+              <div class="flex items-center mb-3">
                 <div class="bg-blue-50 p-1.5 rounded-lg mr-2">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                   </svg>
                 </div>
-                <h4 class="font-medium text-gray-900">Pickup</h4>
+                <div>
+                  <h4 class="font-medium text-gray-900">Pickup</h4>
+                  <p class="text-xs text-blue-600">We'll call to confirm 30 mins before arrival</p>
+                </div>
               </div>
-              <div class="space-y-2 ml-7">
+              <div class="space-y-3 ml-7">
                 <div class="flex items-center text-sm">
                   <svg class="h-4 w-4 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -426,8 +578,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   </svg>
                   <div>
-                    <p>{formData.pickup_address}</p>
-                    <p>{formData.pickup_city}, {formData.pickup_zip}</p>
+                    <p class="font-medium">{formData.pickup_address}</p>
+                    <p class="text-gray-500">{formData.pickup_city}, {formData.pickup_zip}</p>
                   </div>
                 </div>
               </div>
@@ -435,15 +587,18 @@
             
             <!-- Delivery Details -->
             <div class="p-4">
-              <div class="flex items-center mb-2">
+              <div class="flex items-center mb-3">
                 <div class="bg-green-50 p-1.5 rounded-lg mr-2">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                   </svg>
                 </div>
-                <h4 class="font-medium text-gray-900">Delivery</h4>
+                <div>
+                  <h4 class="font-medium text-gray-900">Delivery</h4>
+                  <p class="text-xs text-green-600">Fresh and clean, right to your door</p>
+                </div>
               </div>
-              <div class="space-y-2 ml-7">
+              <div class="space-y-3 ml-7">
                 <div class="flex items-center text-sm">
                   <svg class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -457,8 +612,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   </svg>
                   <div>
-                    <p>{formData.dropoff_address}</p>
-                    <p>{formData.dropoff_city}, {formData.dropoff_zip}</p>
+                    <p class="font-medium">{formData.dropoff_address}</p>
+                    <p class="text-gray-500">{formData.dropoff_city}, {formData.dropoff_zip}</p>
                   </div>
                 </div>
               </div>
@@ -468,16 +623,58 @@
           <!-- Delivery Instructions if any -->
           {#if formData.delivery_instructions}
             <div class="border-t border-gray-100 p-4">
-              <div class="flex items-start space-x-2">
-                <svg class="h-4 w-4 text-yellow-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                </svg>
-                <div class="flex-1">
+              <div class="flex items-start space-x-3">
+                <div class="bg-yellow-50 p-1.5 rounded-lg">
+                  <svg class="h-4 w-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-gray-700 mb-1">Special Instructions</p>
                   <p class="text-sm text-gray-600">{formData.delivery_instructions}</p>
                 </div>
               </div>
             </div>
           {/if}
+
+          <!-- Service Steps -->
+          <div class="border-t border-gray-100 p-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="flex items-start space-x-3">
+                <div class="bg-blue-50 p-2 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">Confirmation Call</p>
+                  <p class="text-xs text-gray-500">We'll call 30 mins before arrival</p>
+                </div>
+              </div>
+              <div class="flex items-start space-x-3">
+                <div class="bg-primary-50 p-2 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">Status Updates</p>
+                  <p class="text-xs text-gray-500">Track your order progress</p>
+                </div>
+              </div>
+              <div class="flex items-start space-x-3">
+                <div class="bg-green-50 p-2 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">Quality Check</p>
+                  <p class="text-xs text-gray-500">100% satisfaction guaranteed</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -498,12 +695,44 @@
           <div>
             <p class="text-sm text-gray-500 mb-1">Contact</p>
             <p class="font-medium text-gray-800">{formData.email}</p>
-            <p class="text-sm text-gray-600">{formData.phone}</p>
-          </div>
-          <div class="col-span-1 md:col-span-2">
-            <p class="text-sm text-gray-500 mb-1">Address</p>
-            <p class="font-medium text-gray-800">{formData.address}</p>
-            <p class="text-sm text-gray-600">{formData.city}, {formData.state} {formData.zip}</p>
+            {#if !formData.phone || isEditingPhone}
+              <div class="mt-2">
+                <label for="phone" class="block text-sm text-gray-600 mb-1">Phone Number (required)</label>
+                <div class="flex items-center space-x-2">
+                  <input
+                    type="tel"
+                    id="phone"
+                    bind:value={tempPhone}
+                    on:input={handlePhoneInput}
+                    placeholder="(555) 555-5555"
+                    class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <button
+                    on:click={updatePhoneNumber}
+                    disabled={!tempPhone || !tempPhone.match(/^\(\d{3}\) \d{3}-\d{4}$/)}
+                    class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Save
+                  </button>
+                </div>
+                {#if phoneError}
+                  <p class="text-red-500 text-xs mt-1">{phoneError}</p>
+                {/if}
+              </div>
+            {:else}
+              <div class="flex items-center space-x-2">
+                <p class="text-sm text-gray-600">{formData.phone}</p>
+                <button
+                  on:click={() => {
+                    isEditingPhone = true;
+                    tempPhone = formData.phone;
+                  }}
+                  class="text-primary-600 hover:text-primary-700 text-sm font-medium focus:outline-none"
+                >
+                  Edit
+                </button>
+              </div>
+            {/if}
           </div>
           
           {#if formData.notes}
@@ -626,8 +855,8 @@
 <StripePayment 
   bind:this={paymentComponent}
   amount={finalTotal}
-  customerEmail={formData.email}
-  customerName={`${formData.first_name} ${formData.last_name}`}
+  customerEmail={customerEmail}
+  customerName={customerName}
   on:ready={handlePaymentReady}
 />
 
@@ -641,17 +870,19 @@
   
   <button 
     on:click={handleSubmitOrder}
-    disabled={isProcessingPayment || !paymentComponent}
+    disabled={!canPlaceOrder || isUpdatingPhone}
     class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed"
   >
-    {#if isProcessingPayment}
+    {#if isProcessingPayment || isUpdatingPhone}
       <span class="flex items-center justify-center">
         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        Processing...
+        {isUpdatingPhone ? 'Updating Phone...' : 'Processing...'}
       </span>
+    {:else if !formData.phone}
+      Add Phone Number to Continue
     {:else}
       Place Order
     {/if}
