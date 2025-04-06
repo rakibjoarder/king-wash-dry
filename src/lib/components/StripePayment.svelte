@@ -10,7 +10,7 @@
   
   let stripe: Stripe | null = null;
   let elements: StripeElements | null = null;
-  let paymentElement: any = null; // Using any for now since PaymentElement type is not exported
+  let paymentElement: any = null;
   let cardElement;
   let loading = true;
   let errorMessage = '';
