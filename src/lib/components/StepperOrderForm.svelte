@@ -630,12 +630,12 @@
     <h2 class="text-xl font-semibold mb-4">Select Service Type</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <button
-        class="p-6 border rounded-lg text-left hover:border-blue-500 transition-all
-          {formData.service_type === 'pickup_and_dropoff' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}"
+        class="p-6 border rounded-lg text-left hover:border-primary-500 transition-all
+          {formData.service_type === 'pickup_and_dropoff' ? 'border-primary-500 bg-primary-50' : 'border-gray-200'}"
         on:click={() => formData.service_type = 'pickup_and_dropoff'}
       >
         <div class="flex items-start">
-          <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-6 h-6 text-primary-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
           </svg>
           <div class="ml-3">
@@ -646,27 +646,27 @@
       </button>
 
       <button
-        class="p-6 border rounded-lg text-left hover:border-blue-500 transition-all
-          {formData.service_type === 'self_service' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}"
+        class="p-6 border rounded-lg text-left hover:border-primary-500 transition-all
+          {formData.service_type === 'self_service' ? 'border-primary-500 bg-primary-50' : 'border-gray-200'}"
         on:click={() => formData.service_type = 'self_service'}
       >
         <div class="flex items-start">
-          <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-6 h-6 text-primary-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/>
           </svg>
           <div class="ml-3">
             <h3 class="font-medium">Self Service</h3>
             <p class="text-sm text-gray-500">Use our facilities to do your own laundry</p>
-            <p class="text-xs text-blue-600 mt-1">Washers starting from $2.50 | Dryers starting from $2.00</p>
+            <p class="text-xs text-primary-600 mt-1">Washers starting from $2.50 | Dryers starting from $2.00</p>
           </div>
         </div>
       </button>
     </div>
   </div>
   {:else}
-  <div class="mb-8 flex items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-100">
+  <div class="mb-8 flex items-center justify-between bg-primary-50 p-4 rounded-lg border border-primary-100">
     <div class="flex items-center">
-      <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg class="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
       </svg>
       <span class="ml-2 font-medium">
@@ -674,7 +674,7 @@
       </span>
     </div>
     <button 
-      class="text-sm text-blue-600 hover:text-blue-800" 
+      class="text-sm text-primary-600 hover:text-primary-800" 
       on:click={() => formData.service_type = null}
     >
       Change
@@ -704,7 +704,7 @@
             <div 
               class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
                 {index <= currentStep 
-                  ? 'bg-blue-600 text-white' 
+                  ? 'bg-primary-600 text-white' 
                   : 'bg-gray-100 text-gray-500'}"
             >
               {index + 1}
@@ -712,7 +712,7 @@
             
             <span class="ml-2 text-sm font-medium 
               {index === currentStep 
-                ? 'text-blue-600' 
+                ? 'text-primary-600' 
                 : index < currentStep 
                   ? 'text-gray-900' 
                   : 'text-gray-500'}">
@@ -721,7 +721,7 @@
           </div>
           
           {#if index < steps.length - 1}
-            <div class="flex-1 mx-4 h-0.5 {index < currentStep ? 'bg-blue-600' : 'bg-gray-200'}"></div>
+            <div class="flex-1 mx-4 h-0.5 {index < currentStep ? 'bg-primary-600' : 'bg-gray-200'}"></div>
           {/if}
         {/each}
       </div>
@@ -730,10 +730,10 @@
       <div class="md:hidden">
         <div class="flex justify-between items-center mb-2">
           <span class="text-sm font-medium text-gray-500">Step {currentStep + 1} of {steps.length}</span>
-          <span class="text-sm font-medium text-blue-600">{steps[currentStep]}</span>
+          <span class="text-sm font-medium text-primary-600">{steps[currentStep]}</span>
         </div>
         <div class="w-full bg-gray-200 rounded-full h-2.5">
-          <div class="bg-blue-600 h-2.5 rounded-full" style="width: {(currentStep / (steps.length - 1)) * 100}%"></div>
+          <div class="bg-primary-600 h-2.5 rounded-full" style="width: {(currentStep / (steps.length - 1)) * 100}%"></div>
         </div>
       </div>
     </div>
@@ -767,7 +767,7 @@
               {#if new Date().getHours() < 15} <!-- Check if it's before 3 PM -->
                 <div>
                   <label class="flex items-center gap-2 text-lg font-medium text-gray-900 mb-4">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     Express Pickup Today
@@ -784,8 +784,8 @@
                         type="button"
                         class="px-4 py-3 text-sm border rounded-xl transition-all duration-200
                           {formData.pickup_time === timeSlot 
-                            ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm' 
-                            : 'border-gray-200 text-gray-600 hover:border-blue-200 hover:bg-blue-50'}"
+                            ? 'bg-primary-50 border-primary-500 text-primary-700 shadow-sm' 
+                            : 'border-gray-200 text-gray-600 hover:border-primary-200 hover:bg-primary-50'}"
                         on:click={() => {
                           formData.pickup_time = timeSlot;
                           formData.pickup_date = new Date().toISOString().split('T')[0];
@@ -798,26 +798,26 @@
 
                   <!-- Express Service Message -->
                   {#if formData.pickup_time}
-                    <div class="mt-6 p-6 bg-blue-50 rounded-xl border border-blue-200 space-y-4">
+                    <div class="mt-6 p-6 bg-primary-50 rounded-xl border border-primary-200 space-y-4">
                       <div class="flex items-start gap-3">
-                        <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg class="w-6 h-6 text-primary-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                         <div>
-                          <h4 class="font-medium text-blue-900">Express Service Confirmed</h4>
-                          <p class="text-sm text-blue-700 mt-1">
+                          <h4 class="font-medium text-primary-900">Express Service Confirmed</h4>
+                          <p class="text-sm text-primary-700 mt-1">
                             Our team will collect your laundry today between {formData.pickup_time}
                           </p>
                         </div>
                       </div>
 
                       <div class="flex items-start gap-3">
-                        <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg class="w-6 h-6 text-primary-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
                         <div>
-                          <h4 class="font-medium text-blue-900">Same Day Delivery</h4>
-                          <p class="text-sm text-blue-700 mt-1">
+                          <h4 class="font-medium text-primary-900">Same Day Delivery</h4>
+                          <p class="text-sm text-primary-700 mt-1">
                             We'll process your order with priority and deliver it back to you as soon as it's ready. Our team will contact you for delivery coordination.
                           </p>
                         </div>
@@ -857,14 +857,14 @@
                 <h4 class="text-lg font-medium text-gray-900">Pickup Details</h4>
                 
                 <!-- Add Contact Info Message -->
-                <div class="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-6">
+                <div class="p-4 bg-primary-50 rounded-lg border border-primary-100 mb-6">
                   <div class="flex items-start gap-3">
-                    <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-6 h-6 text-primary-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <h4 class="font-medium text-blue-900">Schedule Your Service</h4>
-                      <p class="text-sm text-blue-700 mt-1">
+                      <h4 class="font-medium text-primary-900">Schedule Your Service</h4>
+                      <p class="text-sm text-primary-700 mt-1">
                         Select your preferred pickup date and time. We'll send you a confirmation and notify you 30 minutes before arrival.
                       </p>
                     </div>
@@ -873,7 +873,7 @@
 
                 <div>
                   <label class="flex items-center gap-2 text-base font-medium text-gray-800 mb-4">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     Pickup Date
@@ -892,8 +892,8 @@
                           class="flex-shrink-0 p-3 sm:p-4 border rounded-lg transition-all duration-200
                             w-[140px] sm:w-[120px] text-center
                             {formData.pickup_date === date.toISOString().split('T')[0] 
-                              ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                              : 'border-gray-200 hover:border-blue-200 hover:bg-blue-50'}"
+                              ? 'border-primary-500 bg-primary-50 text-primary-700' 
+                              : 'border-gray-200 hover:border-primary-200 hover:bg-primary-50'}"
                           on:click={() => {
                             formData.pickup_date = date.toISOString().split('T')[0];
                             // Set delivery date to the day after pickup
@@ -937,8 +937,8 @@
                         type="button"
                         class="px-4 py-3 text-sm border rounded-xl transition-all duration-200
                           {formData.pickup_time === timeSlot 
-                            ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm' 
-                            : 'border-gray-200 text-gray-600 hover:border-blue-200 hover:bg-blue-50'}"
+                            ? 'bg-primary-50 border-primary-500 text-primary-700 shadow-sm' 
+                            : 'border-gray-200 text-gray-600 hover:border-primary-200 hover:bg-primary-50'}"
                         on:click={() => formData.pickup_time = timeSlot}
                       >
                         {timeSlot}
@@ -953,14 +953,14 @@
                 <h4 class="text-lg font-medium text-gray-900">Delivery Details</h4>
                 
                 <!-- Add Delivery Contact Info -->
-                <div class="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-6">
+                <div class="p-4 bg-primary-50 rounded-lg border border-primary-100 mb-6">
                   <div class="flex items-start gap-3">
-                    <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-6 h-6 text-primary-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <h4 class="font-medium text-blue-900">Choose Delivery Time</h4>
-                      <p class="text-sm text-blue-700 mt-1">
+                      <h4 class="font-medium text-primary-900">Choose Delivery Time</h4>
+                      <p class="text-sm text-primary-700 mt-1">
                         Pick your preferred delivery date and time. We'll process your order and ensure it's ready for your selected time slot.
                       </p>
                     </div>
@@ -969,7 +969,7 @@
 
                 <div>
                   <label class="flex items-center gap-2 text-base font-medium text-gray-800 mb-4">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     Delivery Date
@@ -990,10 +990,10 @@
                           class="flex-shrink-0 p-3 sm:p-4 border rounded-lg transition-all duration-200
                             w-[140px] sm:w-[120px] text-center
                             {formData.drop_off_date === date.toISOString().split('T')[0] 
-                              ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                              ? 'border-primary-500 bg-primary-50 text-primary-700' 
                               : new Date(date) <= new Date(formData.pickup_date)
                                 ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
-                                : 'border-gray-200 hover:border-blue-200 hover:bg-blue-50'}"
+                                : 'border-gray-200 hover:border-primary-200 hover:bg-primary-50'}"
                           disabled={new Date(date) <= new Date(formData.pickup_date)}
                           on:click={() => {
                             const selectedDate = date.toISOString().split('T')[0];
@@ -1041,8 +1041,8 @@
                         type="button"
                         class="px-4 py-3 text-sm border rounded-xl transition-all duration-200
                           {formData.drop_off_time === timeSlot 
-                            ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm' 
-                            : 'border-gray-200 text-gray-600 hover:border-blue-200 hover:bg-blue-50'}"
+                            ? 'bg-primary-50 border-primary-500 text-primary-700 shadow-sm' 
+                            : 'border-gray-200 text-gray-600 hover:border-primary-200 hover:bg-primary-50'}"
                         on:click={() => {
                           const pickupDate = new Date(formData.pickup_date);
                           const deliveryDate = new Date(formData.drop_off_date);
@@ -1084,7 +1084,7 @@
             <h4 class="text-base font-medium text-gray-800">Pickup Address</h4>
             {#if loading}
               <div class="text-center py-4">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
               </div>
             {:else if error}
               <div class="text-red-600 text-sm">{error}</div>
@@ -1098,7 +1098,7 @@
                   type="text"
                   bind:value={formData.pickup_address}
                   placeholder="Enter pickup address"
-                  class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200"
+                  class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200"
                   on:input={() => {
                     if (sameAddress) {
                       formData.dropoff_address = formData.pickup_address;
@@ -1117,7 +1117,7 @@
                   type="text"
                   bind:value={formData.pickup_city}
                   placeholder="City"
-                  class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200"
+                  class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200"
                   on:input={() => {
                     if (sameAddress) {
                       formData.dropoff_city = formData.pickup_city;
@@ -1134,7 +1134,7 @@
                   type="text"
                   bind:value={formData.pickup_zip}
                   placeholder="ZIP"
-                  class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200"
+                  class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200"
                   on:input={() => {
                     if (sameAddress) {
                       formData.dropoff_zip = formData.pickup_zip;
@@ -1153,8 +1153,8 @@
             </div>
             <button 
               type="button" 
-              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                {sameAddress ? 'bg-blue-600' : 'bg-gray-200'}"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+                {sameAddress ? 'bg-primary-600' : 'bg-gray-200'}"
               on:click={() => {
                 sameAddress = !sameAddress;
                 if (sameAddress) {
@@ -1184,7 +1184,7 @@
                     type="text"
                     bind:value={formData.dropoff_address}
                     placeholder="Enter delivery address"
-                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200"
+                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200"
                   />
                 </div>
 
@@ -1196,7 +1196,7 @@
                     type="text"
                     bind:value={formData.dropoff_city}
                     placeholder="City"
-                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200"
+                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200"
                   />
                 </div>
 
@@ -1208,7 +1208,7 @@
                     type="text"
                     bind:value={formData.dropoff_zip}
                     placeholder="ZIP"
-                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200"
+                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200"
                   />
                 </div>
               </div>
@@ -1223,7 +1223,7 @@
             <textarea
               bind:value={formData.delivery_instructions}
               placeholder="Any special instructions for delivery? (e.g., 'Leave at front desk', 'Call upon arrival')"
-              class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200 min-h-[100px]"
+              class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200 min-h-[100px]"
             ></textarea>
           </div>
         </div>
@@ -1254,7 +1254,7 @@
       
       <button 
         type="button"
-        class="px-4 py-2 text-sm md:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors
+        class="px-4 py-2 text-sm md:text-base bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors
           {!currentStepValid ? 'opacity-50 cursor-not-allowed' : ''}"
         disabled={!currentStepValid}
         on:click={currentStep === 4 ? handleSubmit : handleNextClick}
