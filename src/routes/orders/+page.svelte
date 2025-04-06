@@ -96,12 +96,7 @@
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8">
-  <div class="flex justify-between items-center mb-8">
-    <h1 class="text-3xl font-bold text-primary-600">Your Orders</h1>
-    <a href="/order" class="btn btn-primary px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700">
-      New Order
-    </a>
-  </div>
+  <h1 class="text-xl font-bold text-primary-600 mb-8">Your Orders</h1>
   
   {#if loading}
     <div class="flex justify-center items-center py-12">
@@ -132,69 +127,100 @@
   {:else}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {#each orders as order}
-        <div class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-          <!-- Order Header -->
-          <div class="bg-primary-50 p-4 border-b border-gray-200">
-            <div class="flex justify-between items-start">
-              <div>
-                <h3 class="font-bold text-primary-700">Order #{order.id}</h3>
-                <p class="text-sm text-gray-600">{formatDate(order.created_at)}</p>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
+          <!-- Order Header with Status -->
+          <div class="bg-primary-50 px-3 py-2 border-b border-primary-100">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center">
+                <div class="mr-2 flex-shrink-0">
+                  <div class="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center">
+                    <span class="font-semibold text-gray-900 text-sm">#{order.id}</span>
+                    <span class="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-500">{formatDate(order.created_at)}</div>
+                </div>
               </div>
-              <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-              </span>
+              <span class="font-semibold text-blue-600">{formatCurrency(order.total_price)}</span>
             </div>
           </div>
           
-          <!-- Order Details -->
-          <div class="p-4">
-            <div class="space-y-3">
-              <div class="flex justify-between">
-                <span class="text-gray-600">Service:</span>
-                <span class="font-medium">{order.service?.name || 'N/A'}</span>
+          <!-- Order Details in Grid Layout -->
+          <div class="px-3 py-2 grid grid-cols-2 gap-4">
+            <div class="flex items-center">
+              <svg class="w-4 h-4 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+              <div>
+                <div class="text-xs text-gray-500">Service</div>
+                <div class="font-medium text-sm">{order.service?.name || 'N/A'}</div>
               </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600">Location:</span>
-                <span class="font-medium">{order.location?.name || 'N/A'}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600">Weight:</span>
-                <span class="font-medium">{order.weight} lbs</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600">Total:</span>
-                <span class="font-bold text-primary-700">{formatCurrency(order.total_price)}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600">Drop-off:</span>
-                <span class="font-medium">{formatDate(order.drop_off_date)}</span>
-              </div>
-              {#if order.pickup_requested}
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Pick-up:</span>
-                  <span class="font-medium">{formatDate(order.pickup_date)}</span>
-                </div>
-              {/if}
             </div>
             
-            <!-- Items Summary (if available) -->
-            {#if order.items && order.items.length > 0}
-              <div class="mt-4 pt-4 border-t border-gray-200">
-                <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Items</h4>
-                <div class="text-sm text-gray-600">
-                  {order.items.filter(item => item.quantity > 0).length} different item types
+            <div class="flex items-center">
+              <svg class="w-4 h-4 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+              </svg>
+              <div>
+                <div class="text-xs text-gray-500">Weight</div>
+               <div class="font-medium text-sm">{order.weight} lbs</div>
+              </div>
+            </div>
+            
+            <div class="flex items-start">
+              <svg class="w-3.5 h-3.5 text-green-500 mr-1.5 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <div>
+                <div class="text-xs text-gray-500">Drop-off</div>
+                 <div class="font-medium text-sm">{formatDate(order.drop_off_date)}</div>
+                <div class="text-xs text-gray-500">9AM - 11AM</div>
+              </div>
+            </div>
+            
+            {#if order.pickup_requested}
+              <div class="flex items-start">
+                <svg class="w-4 h-4 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <div>
+                  <div class="text-xs text-gray-500">Pick-up</div>
+                  <div class="font-medium text-sm">{formatDate(order.pickup_date)}</div>
+                  <div class="text-xs text-gray-500">{order.pickup_time}</div>
+                </div>
+              </div>
+            {:else}
+              <div class="flex items-center">
+                <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <div>
+                  <div class="text-xs text-gray-500">Items</div>
+                  <div class="font-medium">
+                    {order.items && order.items.length > 0 ? order.items.filter(item => item.quantity > 0).length : 0} items
+                  </div>
                 </div>
               </div>
             {/if}
           </div>
           
-          <!-- Order Actions -->
-          <div class="bg-gray-50 p-4 border-t border-gray-200">
-            <div class="flex justify-center">
-              <a href={`/order-confirmation?id=${order.id}`} class="text-primary-600 hover:text-primary-800 text-sm font-medium">
-                View Details
-              </a>
-            </div>
+          <!-- Order Actions - Footer -->
+          <div class="bg-gray-50 px-3 py-2 border-t border-gray-100 flex justify-end items-center">
+           
+            <a 
+              href={`/order-confirmation?id=${order.id}`} 
+              class="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+            >
+              View Details
+            </a>
           </div>
         </div>
       {/each}
