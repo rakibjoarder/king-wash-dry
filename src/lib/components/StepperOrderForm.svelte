@@ -51,7 +51,7 @@
     specialInstructions: ''
   };
   
-  type ServiceType = 'pickup_and_dropoff' | 'pickup_only' | 'dropoff_only' | 'self_service';
+  type ServiceType = 'pickup_and_dropoff' | 'self_service' | null;
 
   interface FormData {
     service_type: ServiceType;
@@ -71,7 +71,7 @@
   }
 
   let formData: FormData = {
-    service_type: '' as ServiceType,
+    service_type: null as ServiceType,
     service_id: '',
     pickup_address: '',
     pickup_city: '',
@@ -79,9 +79,9 @@
     dropoff_address: '',
     dropoff_city: '',
     dropoff_zip: '',
-    pickup_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+    pickup_date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
     pickup_time: '9AM - 11AM',
-    drop_off_date: new Date().toISOString().split('T')[0],
+    drop_off_date: new Date(Date.now() + (86400000 * 2)).toISOString().split('T')[0], // Day after tomorrow
     drop_off_time: '9AM - 11AM',
     weight: 0
   };
@@ -104,6 +104,9 @@
   
   // Add showLoginModal state
   let showLoginModal = false;
+  
+  // Add customer data state
+  let customerData: any = null;
   
   // Add function to save state
   function saveFormState() {
@@ -292,6 +295,17 @@
         }
       }
 
+      // Save customer address when moving from step 3 to 4
+      if (currentStep === 3) {
+        try {
+          await saveCustomerAddress();
+        } catch (err) {
+          console.error('Error saving customer address:', err);
+          error = 'Failed to save address. Please try again.';
+          return;
+        }
+      }
+
       if (currentStep === 2) {
         currentStep = 3;
       } else {
@@ -354,6 +368,8 @@
         .from('customers')
         .select('*')
         .eq('user_id', $currentUser.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
       if (customerError || !customerData) {
@@ -455,11 +471,12 @@
   // Modify the service selection handler
   function handleServiceSelection(serviceId: string) {
     formData.service_id = serviceId;
+    currentStep = 0; // Reset to first step
     
     // Wait for items to be loaded and scroll to them with offset
     setTimeout(() => {
       if (itemsSection) {
-        const yOffset = -80; // Add offset from top (adjust this value as needed)
+        const yOffset = -80;
         const y = itemsSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
         
         window.scrollTo({
@@ -469,10 +486,109 @@
       }
     }, 100);
   }
+
+  // Modify the button click handler in the After 3 PM Message section
+  function switchToRegularService() {
+    formData.service_id = '1'; // Switch to regular service
+    currentStep = 0; // Reset to first step
+    formData.service_type = 'pickup_and_dropoff'; // Reset service type
+  }
+
+  // Function to fetch customer address
+  async function fetchCustomerAddress() {
+    console.log('Fetching customer address');
+    if (!$currentUser) return;
+    
+    loading = true;
+    error = '';
+    
+    try {
+      // Get the session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No session found');
+      }
+
+      const response = await fetch('/api/order-customer', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch address');
+      }
+      
+      const data = await response.json();
+      if (data) {
+        customerData = data;
+        // Update form data with customer address
+        formData.pickup_address = data.address || '';
+        formData.pickup_city = data.city || '';
+        formData.pickup_zip = data.zip || '';
+        
+        // If same address is enabled, update delivery address too
+        if (sameAddress) {
+          formData.dropoff_address = data.address || '';
+          formData.dropoff_city = data.city || '';
+          formData.dropoff_zip = data.zip || '';
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching customer address:', err);
+      error = 'Failed to load saved address';
+    } finally {
+      loading = false;
+    }
+  }
+  
+  // Function to save customer address
+  async function saveCustomerAddress() {
+    if (!$currentUser) return;
+    
+    loading = true;
+    error = '';
+    
+    try {
+      // Get the session to access the bearer token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No session found');
+      }
+
+      const response = await fetch('/api/order-customer', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          address: formData.pickup_address,
+          city: formData.pickup_city,
+          zip: formData.pickup_zip
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save address');
+      }
+    } catch (err) {
+      console.error('Error saving customer address:', err);
+      error = 'Failed to save address';
+      throw err;
+    } finally {
+      loading = false;
+    }
+  }
+  
+  // Fetch customer address when component mounts or user changes
+  $: if ($currentUser) {
+    fetchCustomerAddress();
+  }
 </script>
 
 <div class="w-full">
   <!-- Service Type Selection -->
+  {#if !formData.service_type}
   <div class="mb-8">
     <h2 class="text-xl font-semibold mb-4">Select Service Type</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -510,6 +626,24 @@
       </button>
     </div>
   </div>
+  {:else}
+  <div class="mb-8 flex items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-100">
+    <div class="flex items-center">
+      <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      <span class="ml-2 font-medium">
+        {formData.service_type === 'pickup_and_dropoff' ? 'Full Service' : 'Self Service'}
+      </span>
+    </div>
+    <button 
+      class="text-sm text-blue-600 hover:text-blue-800" 
+      on:click={() => formData.service_type = null}
+    >
+      Change
+    </button>
+  </div>
+  {/if}
 
   {#if formData.service_type === 'self_service'}
     <!-- Store Locations -->
@@ -668,9 +802,7 @@
                       <button
                         type="button"
                         class="mt-4 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-100 rounded-lg hover:bg-amber-200 transition-colors"
-                        on:click={() => {
-                          formData.service_id = '1'; // Switch to regular service
-                        }}
+                        on:click={switchToRegularService}
                       >
                         Switch to Regular Service
                       </button>
@@ -685,6 +817,22 @@
               <!-- Pickup Section -->
               <div class="space-y-6">
                 <h4 class="text-lg font-medium text-gray-900">Pickup Details</h4>
+                
+                <!-- Add Contact Info Message -->
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-6">
+                  <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 class="font-medium text-blue-900">Schedule Your Service</h4>
+                      <p class="text-sm text-blue-700 mt-1">
+                        Select your preferred pickup date and time. We'll send you a confirmation and notify you 30 minutes before arrival.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label class="flex items-center gap-2 text-base font-medium text-gray-800 mb-4">
                     <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -708,7 +856,13 @@
                             {formData.pickup_date === date.toISOString().split('T')[0] 
                               ? 'border-blue-500 bg-blue-50 text-blue-700' 
                               : 'border-gray-200 hover:border-blue-200 hover:bg-blue-50'}"
-                          on:click={() => formData.pickup_date = date.toISOString().split('T')[0]}
+                          on:click={() => {
+                            formData.pickup_date = date.toISOString().split('T')[0];
+                            // Set delivery date to the day after pickup
+                            const deliveryDate = new Date(date);
+                            deliveryDate.setDate(date.getDate() + 1);
+                            formData.drop_off_date = deliveryDate.toISOString().split('T')[0];
+                          }}
                         >
                           <p class="text-sm font-medium mb-1">
                             {date.toLocaleDateString('en-US', { weekday: 'short' })}
@@ -761,6 +915,22 @@
               <!-- Delivery Section -->
               <div class="space-y-6 pt-8 border-t border-gray-200">
                 <h4 class="text-lg font-medium text-gray-900">Delivery Details</h4>
+                
+                <!-- Add Delivery Contact Info -->
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-6">
+                  <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 class="font-medium text-blue-900">Choose Delivery Time</h4>
+                      <p class="text-sm text-blue-700 mt-1">
+                        Pick your preferred delivery date and time. We'll process your order and ensure it's ready for your selected time slot.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label class="flex items-center gap-2 text-base font-medium text-gray-800 mb-4">
                     <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -847,6 +1017,13 @@
           <!-- Pickup Address Section -->
           <div class="space-y-6">
             <h4 class="text-base font-medium text-gray-800">Pickup Address</h4>
+            {#if loading}
+              <div class="text-center py-4">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            {:else if error}
+              <div class="text-red-600 text-sm">{error}</div>
+            {/if}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
