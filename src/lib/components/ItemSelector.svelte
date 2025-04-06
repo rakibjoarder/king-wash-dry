@@ -1,8 +1,35 @@
 <script lang="ts">
-  export let itemTypes = [];
-  export let selectedItems = [];
+  interface Item {
+    id: string;
+    name: string;
+    avg_weight: number;
+    quantity: number;
+    icon?: string;
+  }
+
+  export let itemTypes: Item[] = [];
+  export let selectedItems: Item[] = [];
   export let weight = 0;
   export let manualWeightEntry = false;
+  export let service: string;
+  
+  // Initialize items when itemTypes changes
+  $: if (itemTypes.length > 0) {
+    selectedItems = itemTypes.map(type => ({
+      ...type,
+      quantity: selectedItems.find(item => item.id === type.id)?.quantity || 0
+    }));
+  }
+  
+  // Reset selections when service changes
+  $: if (service) {
+    selectedItems = itemTypes.map(type => ({
+      ...type,
+      quantity: 0
+    }));
+    weight = 0;
+    manualWeightEntry = false;
+  }
   
   // Calculate total weight from selected items
   $: calculatedWeight = selectedItems.reduce((total, item) => {
@@ -17,7 +44,7 @@
   // Keep track of the calculated weight even when manual entry is on
   $: displayWeight = manualWeightEntry ? weight : parseFloat(calculatedWeight);
   
-  function updateItemQuantity(itemId, change) {
+  function updateItemQuantity(itemId: string, change: number) {
     selectedItems = selectedItems.map(item => {
       if (item.id === itemId) {
         const newQuantity = Math.max(0, item.quantity + change);
@@ -27,7 +54,7 @@
     });
   }
   
-  function getItemIcon(iconName) {
+  function getItemIcon(iconName: string): string {
     switch (iconName) {
       case 'shirt':
         return `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -101,32 +128,34 @@
       </div>
     </div>
     
-    <div class="grid grid-cols-1 gap-4">
+    <div class="grid grid-cols-1 gap-3">
       {#each selectedItems as item}
-        <div class="border rounded-lg p-4 flex items-center justify-between {item.quantity > 0 ? 'border-primary-200 bg-primary-50' : ''}">
+        <div class="border rounded-lg p-3 flex items-center justify-between {item.quantity > 0 ? 'border-primary-100 bg-primary-50/50' : ''}">
           <div class="flex items-center">
-            <div class="text-primary-600 mr-3">
-              {@html getItemIcon(item.icon)}
+            <div class="w-7 h-7 flex items-center justify-center bg-primary-50 text-primary-600 rounded-full mr-2">
+              {@html item.icon ? getItemIcon(item.icon) : '<span>' + item.name.charAt(0) + '</span>'}
             </div>
             <div>
-              <p class="font-medium">{item.name}</p>
-              <p class="text-sm text-gray-500">{item.avg_weight} lbs each (average)</p>
-              {#if item.quantity > 0}
-                <p class="text-xs text-primary-600">Total: {(item.quantity * item.avg_weight).toFixed(2)} lbs</p>
-              {/if}
+              <p class="font-medium text-sm">{item.name}</p>
+              <div class="flex items-center gap-2 text-xs text-gray-500">
+                <span>{item.avg_weight} lbs each</span>
+                {#if item.quantity > 0}
+                  <span class="text-primary-600">Total: {(item.quantity * item.avg_weight).toFixed(2)} lbs</span>
+                {/if}
+              </div>
             </div>
           </div>
           
           <div class="flex items-center">
             <button 
-              class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-300"
+              class="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200"
               on:click={() => updateItemQuantity(item.id, -1)}
             >
               -
             </button>
             <span class="mx-3 w-6 text-center">{item.quantity}</span>
             <button 
-              class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 hover:bg-primary-200"
+              class="w-7 h-7 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 hover:bg-primary-100"
               on:click={() => updateItemQuantity(item.id, 1)}
             >
               +
@@ -203,8 +232,12 @@
                 type="number" 
                 id="weight" 
                 bind:value={weight} 
-                min="0.1" 
-                step="0.1" 
+                min="0.01" 
+                step="0.01" 
+                on:input={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  weight = Number(Number(target.value).toFixed(2));
+                }}
                 class="input w-full text-center text-xl font-bold text-primary-700" 
                 placeholder="Enter weight in lbs"
               />

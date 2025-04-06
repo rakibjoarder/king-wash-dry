@@ -79,9 +79,9 @@
     dropoff_address: '',
     dropoff_city: '',
     dropoff_zip: '',
-    pickup_date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+    pickup_date: new Date().toISOString().split('T')[0], // Today
     pickup_time: '9AM - 11AM',
-    drop_off_date: new Date(Date.now() + (86400000 * 2)).toISOString().split('T')[0], // Day after tomorrow
+    drop_off_date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
     drop_off_time: '9AM - 11AM',
     weight: 0
   };
@@ -221,29 +221,31 @@
       const { data, error } = await query;
       if (error) throw error;
       
-      if (data && data.length > 0) {
-        itemTypes = data;
-        selectedItems = data.map(item => ({
-          ...item,
-          quantity: 0
-        }));
-      } else {
-        // Fallback to default items if none in database
-        itemTypes = [
-          { id: 'shirt', name: 'Shirts', avg_weight: 0.3, icon: 'shirt' },
-          { id: 'pants', name: 'Pants/Jeans', avg_weight: 0.6, icon: 'pants' },
-          { id: 'dress', name: 'Dresses', avg_weight: 0.5, icon: 'dress' },
-          { id: 'sweater', name: 'Sweaters', avg_weight: 0.7, icon: 'sweater' },
-          { id: 'jacket', name: 'Jackets', avg_weight: 1.0, icon: 'jacket' },
-          { id: 'bedding', name: 'Bedding', avg_weight: 2.0, icon: 'bedding' },
-          { id: 'towel', name: 'Towels', avg_weight: 0.5, icon: 'towel' },
-          { id: 'other', name: 'Other Items', avg_weight: 0.5, icon: 'other' }
-        ];
-        
-        selectedItems = itemTypes.map(item => ({
-          ...item,
-          quantity: 0
-        }));
+      // Default items if none in database
+      const defaultItems = [
+        { id: 'shirt', name: 'Shirts', avg_weight: 0.3, icon: 'shirt' },
+        { id: 'pants', name: 'Pants/Jeans', avg_weight: 0.6, icon: 'pants' },
+        { id: 'dress', name: 'Dresses', avg_weight: 0.5, icon: 'dress' },
+        { id: 'sweater', name: 'Sweaters', avg_weight: 0.7, icon: 'sweater' },
+        { id: 'jacket', name: 'Jackets', avg_weight: 1.0, icon: 'jacket' },
+        { id: 'bedding', name: 'Bedding', avg_weight: 2.0, icon: 'bedding' },
+        { id: 'towel', name: 'Towels', avg_weight: 0.5, icon: 'towel' },
+        { id: 'other', name: 'Other Items', avg_weight: 0.5, icon: 'other' }
+      ];
+      
+      // Use database items if available, otherwise use defaults
+      itemTypes = data && data.length > 0 ? data : defaultItems;
+      
+      // Initialize selectedItems with current quantities if they exist
+      selectedItems = itemTypes.map(type => ({
+        ...type,
+        quantity: selectedItems.find(item => item.id === type.id)?.quantity || 0
+      }));
+      
+      // Reset weight if service changed
+      if (serviceId !== lastFetchedServiceId) {
+        formData.weight = 0;
+        manualWeightEntry = false;
       }
     } catch (error) {
       console.error('Error fetching items:', error);
@@ -260,7 +262,7 @@
   function validateStep(step: number): boolean {
     switch(step) {
       case 0: // Service Selection
-        return !!formData.service_id;
+        return !!formData.service_id && formData.weight > 0;
       case 1: // Schedule
         if (formData.service_id === '3') { // Express Service
           return !!formData.pickup_time;
@@ -270,7 +272,7 @@
                !!formData.drop_off_date && 
                !!formData.drop_off_time;
       case 2: // Preferences
-        return true;
+        return formData.weight > 0 && selectedItems.some(item => item.quantity > 0);
       case 3: // Delivery Details
         return !!formData.dropoff_address && 
                !!formData.dropoff_city && 
@@ -285,6 +287,23 @@
   // Modify handleNextClick to save state before showing login modal
   async function handleNextClick() {
     if (currentStepValid) {
+      // Add additional weight validation for step 2
+      if (currentStep === 2) {
+        // Recalculate weight to ensure it's up to date
+        const newWeight = selectedItems.reduce((total, item) => {
+          return total + (item.quantity * (item.avg_weight || 0.5));
+        }, 0);
+        
+        if (!manualWeightEntry) {
+          formData.weight = Number(newWeight.toFixed(2));
+        }
+        
+        // Check if weight is still valid after recalculation
+        if (formData.weight <= 0 || !selectedItems.some(item => item.quantity > 0)) {
+          return; // Don't proceed if weight is 0 or no items selected
+        }
+      }
+
       // Check for authentication after preferences step (step 2)
       if (currentStep === 2) {
         const { data: { session } } = await supabase.auth.getSession();
@@ -425,6 +444,13 @@
       }
       
       success = true;
+      // Reset form data
+      selectedItems = selectedItems.map(item => ({
+        ...item,
+        quantity: 0
+      }));
+      formData.weight = 0;
+      manualWeightEntry = false;
       goto(`/account?order=${result.id}`);
     } catch (err: unknown) {
       console.error('Error submitting order:', err);
@@ -440,12 +466,23 @@
   
   // Update weight based on selected items
   $: {
+    const newWeight = selectedItems.reduce((total, item) => {
+      return total + (item.quantity * (item.avg_weight || 0.5));
+    }, 0);
+    
     if (!manualWeightEntry) {
-      const newWeight = selectedItems.reduce((total, item) => {
-        return total + (item.quantity * (item.avg_weight || 0.5));
-      }, 0);
-      formData.weight = newWeight;
+      formData.weight = Number(newWeight.toFixed(2));
+    } else if (newWeight > formData.weight) {
+      // When in manual mode, only update if the new weight is higher
+      formData.weight = Number(newWeight.toFixed(2));
     }
+  }
+  
+  // Function to handle manual weight input
+  function handleManualWeightInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const value = input.value;
+    formData.weight = Number(Number(value).toFixed(2));
   }
   
   interface OrderData {
@@ -716,7 +753,8 @@
                 {itemTypes} 
                 bind:selectedItems 
                 bind:weight={formData.weight} 
-                bind:manualWeightEntry 
+                bind:manualWeightEntry
+                service={formData.service_id}
               />
             </div>
           {/if}
@@ -843,16 +881,16 @@
                   
                   <!-- Pickup Date Selection -->
                   <div class="relative">
-                    <div class="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+                    <div class="flex gap-2 overflow-x-auto pb-2 px-0.5 pl-3">
                       {#each Array.from({length: 6}, (_, i) => {
                         const date = new Date();
-                        date.setDate(date.getDate() + i + 1);
+                        date.setDate(date.getDate() + i); // Start from today
                         return date;
                       }) as date}
                         <button
                           type="button"
                           class="flex-shrink-0 p-3 sm:p-4 border rounded-lg transition-all duration-200
-                            w-[140px] sm:w-[120px]
+                            w-[140px] sm:w-[120px] text-center
                             {formData.pickup_date === date.toISOString().split('T')[0] 
                               ? 'border-blue-500 bg-blue-50 text-blue-700' 
                               : 'border-gray-200 hover:border-blue-200 hover:bg-blue-50'}"
@@ -867,14 +905,12 @@
                           <p class="text-sm font-medium mb-1">
                             {date.toLocaleDateString('en-US', { weekday: 'short' })}
                           </p>
-                          <div class="flex items-baseline gap-1">
-                            <span class="text-base sm:text-lg font-bold">
-                              {date.toLocaleDateString('en-US', { month: 'short' })} {date.getDate()}
-                            </span>
-                            <span class="text-xs sm:text-sm text-gray-500">
-                              {date.getFullYear()}
-                            </span>
-                          </div>
+                          <p class="text-lg font-bold leading-none">
+                            {date.toLocaleDateString('en-US', { month: 'short' })} {date.getDate()}
+                          </p>
+                          <p class="text-xs text-gray-500 mt-1">
+                            {date.getFullYear()}
+                          </p>
                         </button>
                       {/each}
                     </div>
@@ -913,7 +949,7 @@
               </div>
 
               <!-- Delivery Section -->
-              <div class="space-y-6 pt-8 border-t border-gray-200">
+              <div class="space-y-6">
                 <h4 class="text-lg font-medium text-gray-900">Delivery Details</h4>
                 
                 <!-- Add Delivery Contact Info -->
@@ -941,32 +977,44 @@
                   
                   <!-- Delivery Date Selection -->
                   <div class="relative">
-                    <div class="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+                    <div class="flex gap-2 overflow-x-auto pb-2 pl-3">
                       {#each Array.from({length: 6}, (_, i) => {
                         const date = new Date();
-                        date.setDate(date.getDate() + i + 2); // Start from day after pickup
+                        // Start from day after pickup date
+                        const pickupDate = new Date(formData.pickup_date);
+                        date.setDate(pickupDate.getDate() + i + 2); // Start from 2 days after pickup
                         return date;
                       }) as date}
                         <button
                           type="button"
                           class="flex-shrink-0 p-3 sm:p-4 border rounded-lg transition-all duration-200
-                            w-[140px] sm:w-[120px]
+                            w-[140px] sm:w-[120px] text-center
                             {formData.drop_off_date === date.toISOString().split('T')[0] 
                               ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                              : 'border-gray-200 hover:border-blue-200 hover:bg-blue-50'}"
-                          on:click={() => formData.drop_off_date = date.toISOString().split('T')[0]}
+                              : new Date(date) <= new Date(formData.pickup_date)
+                                ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+                                : 'border-gray-200 hover:border-blue-200 hover:bg-blue-50'}"
+                          disabled={new Date(date) <= new Date(formData.pickup_date)}
+                          on:click={() => {
+                            const selectedDate = date.toISOString().split('T')[0];
+                            const pickupDate = new Date(formData.pickup_date);
+                            const deliveryDate = new Date(selectedDate);
+                            
+                            // Only allow selection if delivery date is at least 1 day after pickup date
+                            if (deliveryDate > pickupDate) {
+                              formData.drop_off_date = selectedDate;
+                            }
+                          }}
                         >
                           <p class="text-sm font-medium mb-1">
                             {date.toLocaleDateString('en-US', { weekday: 'short' })}
                           </p>
-                          <div class="flex items-baseline gap-1">
-                            <span class="text-base sm:text-lg font-bold">
-                              {date.toLocaleDateString('en-US', { month: 'short' })} {date.getDate()}
-                            </span>
-                            <span class="text-xs sm:text-sm text-gray-500">
-                              {date.getFullYear()}
-                            </span>
-                          </div>
+                          <p class="text-lg font-bold leading-none">
+                            {date.toLocaleDateString('en-US', { month: 'short' })} {date.getDate()}
+                          </p>
+                          <p class="text-xs text-gray-500 mt-1">
+                            {date.getFullYear()}
+                          </p>
                         </button>
                       {/each}
                     </div>
@@ -995,7 +1043,24 @@
                           {formData.drop_off_time === timeSlot 
                             ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm' 
                             : 'border-gray-200 text-gray-600 hover:border-blue-200 hover:bg-blue-50'}"
-                        on:click={() => formData.drop_off_time = timeSlot}
+                        on:click={() => {
+                          const pickupDate = new Date(formData.pickup_date);
+                          const deliveryDate = new Date(formData.drop_off_date);
+                          
+                          // Only check time restrictions if pickup and delivery are on the same day
+                          if (pickupDate.toDateString() === deliveryDate.toDateString()) {
+                            const pickupTime = parseInt(formData.pickup_time.split('-')[0]);
+                            const deliveryTime = parseInt(timeSlot.split('-')[0]);
+                            
+                            // Only allow selection if delivery time is after pickup time on the same day
+                            if (deliveryTime > pickupTime) {
+                              formData.drop_off_time = timeSlot;
+                            }
+                          } else {
+                            // Different days, allow any time
+                            formData.drop_off_time = timeSlot;
+                          }
+                        }}
                       >
                         {timeSlot}
                       </button>
@@ -1108,7 +1173,7 @@
 
           <!-- Delivery Address Section - Only show if addresses are different -->
           {#if !sameAddress}
-            <div class="space-y-6 mt-8 pt-8 border-t border-gray-200">
+            <div class="space-y-6 mt-8">
               <h4 class="text-base font-medium text-gray-800">Delivery Address</h4>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>

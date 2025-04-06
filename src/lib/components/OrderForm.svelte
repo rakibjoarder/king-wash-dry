@@ -580,7 +580,7 @@
                         id="manual_weight" 
                         type="checkbox" 
                         bind:checked={manualWeightEntry}
-                        class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 rounded"
+                        class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
                       />
                       <label for="manual_weight" class="ml-2 text-sm text-gray-700">Enter weight manually</label>
                     </div>
@@ -605,10 +605,10 @@
                 </div>
                 
                 {#if formData.weight > 0 && formData.service_id}
-                  <div class="mt-4 p-3 bg-primary-50 rounded-lg border border-primary-100">
+                  <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
                     <div class="flex justify-between items-center">
                       <span class="text-sm font-medium text-gray-700">Estimated Price:</span>
-                      <span class="text-lg font-bold text-primary-700">${calculateEstimatedPrice().toFixed(2)}</span>
+                      <span class="text-lg font-bold text-blue-700">${calculateEstimatedPrice().toFixed(2)}</span>
                     </div>
                   </div>
                 {/if}
@@ -666,7 +666,7 @@
           <button 
             type="submit" 
             disabled={loading || (!manualWeightEntry && selectedItems.every(item => item.quantity === 0))}
-            class="btn btn-primary"
+            class="px-4 py-2 text-sm md:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {#if loading}
               <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
