@@ -270,6 +270,43 @@
   function handlePaymentReady(event: PaymentReadyEvent): void {
     paymentIntentId = event.detail.paymentIntentId;
   }
+
+  // Function to update payment intent amount
+  async function updatePaymentIntent() {
+    if (!paymentIntentId) return;
+    
+    try {
+      // Get current user's session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('No authenticated session found');
+      }
+
+      const response = await fetch('/api/payments/update-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          paymentIntentId,
+          amount: finalTotal
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update payment intent');
+      }
+    } catch (error) {
+      console.error('Error updating payment intent:', error);
+    }
+  }
+
+  // Watch for changes in finalTotal and update payment intent
+  $: if (paymentIntentId && finalTotal > 0) {
+    updatePaymentIntent();
+  }
   
   // Process payment and submit order
   async function handleSubmitOrder(): Promise<void> {
