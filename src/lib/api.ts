@@ -187,16 +187,55 @@ export async function addOrder(customerData: any, orderData: any) {
 }
 
 export async function updateOrderStatus(id: number, status: Order['status']) {
-  const { data, error } = await supabase
-    .from('orders')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select();
+  try {
+    // If status is completed, capture the payment first
+    if (status === 'completed') {
+      // Get the order's payment intent ID
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('payment_intent_id, total_price')
+        .eq('id', id)
+        .single();
+      
+      if (orderError || !order?.payment_intent_id) {
+        console.error('Error getting order payment intent:', orderError);
+        return null;
+      }
+
+      // Capture the payment
+      const response = await fetch('/api/payments/capture', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          paymentIntentId: order.payment_intent_id,
+          amount: order.total_price
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to capture payment');
+        return null;
+      }
+    }
+
+    // Update the order status
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select();
   
-  if (error) {
-    console.error('Error updating order status:', error);
+    if (error) {
+      console.error('Error updating order status:', error);
+      return null;
+    }
+    fetchOrders();
+    return data[0];
+  } catch (error) {
+    console.error('Error in updateOrderStatus:', error);
     return null;
   }
-  fetchOrders();
-  return data[0];
 } 

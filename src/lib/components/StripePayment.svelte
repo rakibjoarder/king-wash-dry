@@ -1,15 +1,16 @@
-<script>
+<script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
   import { PUBLIC_STRIPE_KEY } from '$env/static/public';
+  import type { Stripe, StripeElements } from '@stripe/stripe-js';
   
   export let amount = 0;
   export let customerEmail = '';
   export let customerName = '';
   export let orderId = null;
   
-  let stripe;
-  let elements;
-  let paymentElement;
+  let stripe: Stripe | null = null;
+  let elements: StripeElements | null = null;
+  let paymentElement: any = null; // Using any for now since PaymentElement type is not exported
   let cardElement;
   let loading = true;
   let errorMessage = '';
@@ -23,6 +24,12 @@
     // Load Stripe.js
     const stripeJs = await import('@stripe/stripe-js');
     stripe = await stripeJs.loadStripe(PUBLIC_STRIPE_KEY);
+    
+    if (!stripe) {
+      errorMessage = 'Failed to initialize Stripe';
+      loading = false;
+      return;
+    }
     
     try {
       // Create a payment intent on the server
@@ -73,7 +80,7 @@
       
     } catch (error) {
       console.error('Payment initialization error:', error);
-      errorMessage = error.message || 'Failed to initialize payment';
+      errorMessage = error instanceof Error ? error.message : 'Failed to initialize payment';
       loading = false;
     }
   });
@@ -84,6 +91,9 @@
       // Create and mount the Payment Element
       setTimeout(() => {
         try {
+          if (!elements) {
+            throw new Error('Elements not initialized');
+          }
           paymentElement = elements.create('payment');
           paymentElement.mount('#payment-element');
           
@@ -91,7 +101,7 @@
             loading = false;
           });
           
-          paymentElement.on('change', (event) => {
+          paymentElement.on('change', (event: { error?: { message: string } }) => {
             errorMessage = event.error ? event.error.message : '';
           });
         } catch (error) {
@@ -139,7 +149,15 @@
         throw new Error(error.message || 'Payment failed');
       }
       
+      // Handle different payment intent statuses
       if (paymentIntent.status === 'succeeded') {
+        return { 
+          success: true, 
+          paymentIntentId: paymentIntent.id,
+          paymentMethod: paymentIntent.payment_method
+        };
+      } else if (paymentIntent.status === 'requires_capture') {
+        // This is expected for manual capture
         return { 
           success: true, 
           paymentIntentId: paymentIntent.id,
@@ -150,7 +168,7 @@
       }
     } catch (error) {
       console.error('Payment error:', error);
-      errorMessage = error.message || 'Payment failed';
+      errorMessage = error instanceof Error ? error.message : 'Payment failed';
       return { success: false, error: errorMessage };
     } finally {
       loading = false;

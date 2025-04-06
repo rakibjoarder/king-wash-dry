@@ -24,6 +24,7 @@ export async function POST({ request }) {
       },
       receipt_email: customerEmail,
       description: `Order payment for ${customerName || 'customer'}`,
+      capture_method: 'manual', // Only authorize, don't capture yet
       automatic_payment_methods: {
         enabled: true,
       },
