@@ -279,6 +279,41 @@
     paymentError = '';
     
     try {
+      // Get current user's session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        paymentError = 'Failed to get user session';
+        isProcessingPayment = false;
+        return;
+      }
+      
+      if (!session?.user) {
+        paymentError = 'You must be logged in to place an order';
+        isProcessingPayment = false;
+        return;
+      }
+
+      console.log('User session:', session.user);
+
+      // Get customer ID
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+
+      console.log('Customer data:', customerData);
+      console.log('Customer error:', customerError);
+
+      if (customerError || !customerData) {
+        console.error('Customer error:', customerError);
+        paymentError = 'Failed to retrieve customer information';
+        isProcessingPayment = false;
+        return;
+      }
+      
       // Process the payment
       const paymentResult = await paymentComponent.processPayment();
       
@@ -287,40 +322,77 @@
         isProcessingPayment = false;
         return;
       }
+      console.log('Payment result:', paymentResult);
       
       // Payment successful, now submit the order
       const orderData = {
-        ...formData,
+        // Customer information
+        customer_id: customerData.id,
+        first_name: customerData.first_name,
+        last_name: customerData.last_name,
+        email: customerData.email,
+        phone: customerData.phone,
+        
+        // Order details
+        service_id: parseInt(formData.service_id),
+        location_id: 1, // Default location ID
+        weight: formData.weight,
+        total_price: finalTotal,
+        
+        // Scheduling
+        drop_off_date: formData.drop_off_date,
+        drop_off_time: formData.drop_off_time,
+        pickup_date: formData.pickup_date,
+        pickup_time: formData.pickup_time,
+        
+        // Address information
+        address: formData.pickup_address,
+        city: formData.pickup_city,
+        state: 'USA', // Default state
+        zip: formData.pickup_zip,
+        
+        // Additional data
         preferences: JSON.stringify(preferences),
         items: JSON.stringify(selectedItems.filter(item => item.quantity > 0)),
-        total_price: finalTotal,
+        delivery_instructions: formData.delivery_instructions,
+        
+        // Payment information
+        payment_intent_id: paymentIntentId,
+        payment_method: paymentResult.paymentMethod,
+
+        // Additional amounts
         tip_amount: tipAmount,
         promo_code: promoCode || null,
-        discount_amount: promoDiscount,
-        payment_intent_id: paymentIntentId,
-        payment_method: paymentResult.paymentMethod
+        discount_amount: promoDiscount
       };
       
       console.log('Submitting order data:', orderData);
       
-      const orderResult = await onSubmitOrder(orderData);
-      console.log('Order submission result:', orderResult);
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+      });
       
-      if (orderResult.success) {
-        paymentSuccess = true;
-        
-        // Check if order ID exists before redirecting (check both id and orderId)
-        const orderId = orderResult.id || orderResult.orderId;
-        if (orderId) {
-          // Redirect to order confirmation page
-          window.location.href = `/order-confirmation?id=${orderId}`;
-        } else {
-          // Handle missing order ID
-          console.error('Order created but no ID returned');
-          paymentError = 'Order was created but we could not retrieve the order ID. Please check your account for order details.';
-        }
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create order');
+      }
+      
+      paymentSuccess = true;
+      
+      // Check if order ID exists before redirecting
+      const orderId = result.id || result.orderId;
+      if (orderId) {
+        // Redirect to order confirmation page
+        window.location.href = `/order-confirmation?id=${orderId}`;
       } else {
-        paymentError = orderResult.error || 'Failed to create your order. Please try again.';
+        // Handle missing order ID
+        console.error('Order created but no ID returned');
+        paymentError = 'Order was created but we could not retrieve the order ID. Please check your account for order details.';
       }
     } catch (error: unknown) {
       console.error('Order submission error:', error);

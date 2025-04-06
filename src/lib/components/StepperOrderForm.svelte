@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchLocations, fetchServices, addOrder } from '$lib/api';
+  import { fetchLocations, fetchServices } from '$lib/api';
   import { locations, services, currentUser } from '$lib/stores';
   import { goto } from '$app/navigation';
   import { supabase } from '$lib/supabase';
@@ -349,33 +349,67 @@
     error = '';
     
     try {
+      // Get customer data first
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('user_id', $currentUser.id)
+        .single();
+
+      if (customerError || !customerData) {
+        throw new Error('Failed to retrieve customer information');
+      }
+
       const orderData = {
-        ...formData,
+        // Customer information
+        customer_id: customerData.id,
+        first_name: customerData.first_name,
+        last_name: customerData.last_name,
+        email: customerData.email,
+        phone: customerData.phone,
+        
+        // Order details
+        service_id: parseInt(formData.service_id),
+        location_id: 1, // Default location ID
+        weight: formData.weight,
+        total_price: calculateEstimatedPrice(),
+        
+        // Scheduling
+        drop_off_date: formData.drop_off_date,
+        drop_off_time: formData.drop_off_time,
+        pickup_date: formData.pickup_date,
+        pickup_time: formData.pickup_time,
+        
+        // Address information
+        address: formData.pickup_address,
+        city: formData.pickup_city,
+        state: 'CA', // Default state
+        zip: formData.pickup_zip,
+        
+        // Additional data
         preferences: JSON.stringify(preferences),
         items: JSON.stringify(selectedItems.filter(item => item.quantity > 0)),
-        total_price: calculateEstimatedPrice()
+        delivery_instructions: formData.delivery_instructions
       };
 
-      console.log(orderData);
+      console.log('Submitting order with data:', orderData);
       
-      // Create customer data object for the order
-      const customerData = {
-        user_id: $currentUser.id,
-        email: $currentUser.email,
-        pickup_address: formData.pickup_address,
-        pickup_city: formData.pickup_city,
-        pickup_zip: formData.pickup_zip,
-        dropoff_address: formData.dropoff_address,
-        dropoff_city: formData.dropoff_city,
-        dropoff_zip: formData.dropoff_zip
-      };
-      
-      const order = await addOrder(customerData, orderData);
-      
-      if (order) {
-        success = true;
-        goto(`/account?order=${order.id}`);
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create order');
       }
+      
+      success = true;
+      goto(`/account?order=${result.id}`);
     } catch (err: unknown) {
       console.error('Error submitting order:', err);
       if (err instanceof Error) {
@@ -416,38 +450,6 @@
     items: string;
     total_price: number;
     delivery_instructions?: string;
-  }
-
-  // Submit order with payment
-  async function submitOrderWithPayment(orderData: OrderData) {
-    try {
-      // Create order
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(orderData)
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create order');
-      }
-      
-      return {
-        success: true,
-        orderId: result.id
-      };
-    } catch (error: unknown) {
-      console.error('Order submission error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
   }
   
   // Modify the service selection handler

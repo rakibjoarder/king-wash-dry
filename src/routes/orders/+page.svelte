@@ -61,10 +61,6 @@
             id,
             name,
             description
-          ),
-          location:location_id (
-            id,
-            name
           )
         `)
         .order('created_at', { ascending: false });
