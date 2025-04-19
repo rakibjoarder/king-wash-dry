@@ -57,6 +57,14 @@
                   Reports
                 </a>
               </li>
+              <li>
+                <a 
+                  href="/admin/contact" 
+                  class="block px-4 py-2 rounded-md {$page.url.pathname === '/admin/contact' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}"
+                >
+                  Contact Messages
+                </a>
+              </li>
             </ul>
           </nav>
         </div>

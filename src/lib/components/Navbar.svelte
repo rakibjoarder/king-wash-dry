@@ -95,7 +95,7 @@
 
       <!-- Navigation Links -->
       <div class="hidden lg:flex lg:space-x-1">
-        {#each ['Home', 'Commercial', 'Locations'] as link}
+        {#each ['Home', 'Commercial', 'Locations', 'Contact'] as link}
           <a 
             href={link === 'Home' ? '/' : `/${link.toLowerCase()}`}
             class="group relative px-4 py-2 text-sm font-medium transition-colors duration-200
@@ -250,7 +250,7 @@
       <div class="lg:hidden py-2 transform transition-all duration-300 ease-out">
         <!-- Mobile Navigation Links -->
         <div class="space-y-1 pb-3 pt-2">
-          {#each ['Home', 'Commercial', 'Locations'] as link}
+          {#each ['Home', 'Commercial', 'Locations', 'Contact'] as link}
             <a 
               href={link === 'Home' ? '/' : `/${link.toLowerCase()}`}
               class="block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200

@@ -48,9 +48,9 @@
 
   <!-- Main Footer -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
       <!-- Company Info -->
-      <div class="space-y-4 md:col-span-2">
+      <div class="space-y-4 md:col-span-1">
         <!-- Logo and Company Name -->
         <div class="flex items-center space-x-3">
           <img 
@@ -79,11 +79,21 @@
             </a>
           {/each}
         </div>
+      </div>
+
+      <!-- Services - 2nd column -->
+      <div>
+        <h3 class="text-lg font-semibold mb-4">Our Services</h3>
+        <ul class="space-y-2">
+          {#each services as service}
+            <li class="text-gray-400">{service}</li>
+          {/each}
+        </ul>
         
         <!-- Add Commercial Services Box -->
         <div class="mt-6 p-4 bg-gray-800 rounded-lg">
           <h4 class="text-lg font-semibold mb-3">Commercial Services</h4>
-          <ul class="grid grid-cols-2 gap-2">
+          <ul class="grid grid-cols-1 gap-2">
             {#each commercialServices as service}
               <li class="text-sm text-gray-400 flex items-center">
                 <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,33 +117,57 @@
         </div>
       </div>
 
-      <!-- Quick Links -->
-      <!-- <div>
-        <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
-        <ul class="space-y-2">
-          <li><a href="/" class="text-gray-400 hover:text-white transition-colors duration-300">Home</a></li>
-          <li><a href="/about" class="text-gray-400 hover:text-white transition-colors duration-300">About Us</a></li>
-          <li><a href="/locations" class="text-gray-400 hover:text-white transition-colors duration-300">Locations</a></li>
-          <li><a href="/contact" class="text-gray-400 hover:text-white transition-colors duration-300">Contact</a></li>
-        </ul>
-      </div> -->
-
-      <!-- Services -->
+      <!-- Business Hours - 3rd column -->
       <div>
-        <h3 class="text-lg font-semibold mb-4">Our Services</h3>
-        <ul class="space-y-2">
-          {#each services as service}
-            <li class="text-gray-400">{service}</li>
-          {/each}
+        <h3 class="text-lg font-semibold mb-4">Business Hours</h3>
+        <ul class="space-y-3 text-sm text-gray-400">
+          <li class="flex items-start">
+            <svg class="w-5 h-5 mr-2 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p class="font-medium">Monday - Friday:</p>
+              <p>7:00 AM - 9:00 PM</p>
+            </div>
+          </li>
+          <li class="flex items-start">
+            <svg class="w-5 h-5 mr-2 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p class="font-medium">Saturday:</p>
+              <p>8:00 AM - 8:00 PM</p>
+            </div>
+          </li>
+          <li class="flex items-start">
+            <svg class="w-5 h-5 mr-2 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p class="font-medium">Sunday:</p>
+              <p>9:00 AM - 6:00 PM</p>
+            </div>
+          </li>
         </ul>
+        
+        <div class="mt-6 p-4 bg-gray-800 rounded-lg">
+          <h4 class="text-lg font-semibold mb-3">Service Area</h4>
+          <p class="flex items-center text-gray-400">
+            <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Dallas-Fort Worth Area
+          </p>
+        </div>
       </div>
 
-      <!-- Contact Info -->
+      <!-- Contact Info - 4th column -->
       <div>
         <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
         <div class="space-y-3">
           <p class="flex items-center text-gray-400 hover:text-white transition-colors duration-300">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
             </svg>
             <a href="mailto:kingwashanddry07@gmail.com">
@@ -141,29 +175,35 @@
             </a>
           </p>
           <p class="flex items-center text-gray-400 hover:text-white transition-colors duration-300">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
             </svg>
             <a href="tel:+19453355112">
               +1 (945) 335-5112
             </a>
           </p>
-          <p class="flex items-center text-gray-400">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <div class="flex text-gray-400">
+            <svg class="w-5 h-5 mr-2 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
-            Dallas-Fort Worth Area
-          </p>
-        </div>
-        <!-- Add Business Hours -->
-        <div class="mt-6">
-          <h4 class="text-lg font-semibold mb-3">Business Hours</h4>
-          <ul class="space-y-2 text-sm text-gray-400">
-            <li>Monday - Friday: 7:00 AM - 9:00 PM</li>
-            <li>Saturday: 8:00 AM - 8:00 PM</li>
-            <li>Sunday: 9:00 AM - 6:00 PM</li>
-          </ul>
+            <div>
+              <p class="font-medium">Corporate Office:</p>
+              <p class="text-sm">100 N Central Expy, Suite 812</p>
+              <p class="text-sm">Richardson, TX 75080</p>
+              <p class="text-sm">United States</p>
+              <a 
+                href="http://google.com/maps/search/?api=1&query=100+N+Central+Expy+Suite+812,+Richardson,+TX+75080" 
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-blue-400 hover:text-blue-300 text-sm inline-flex items-center mt-1"
+              >
+                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                View on Map
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
