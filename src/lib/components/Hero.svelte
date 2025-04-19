@@ -1,10 +1,4 @@
-{#if isTyping}
-  <div class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center text-white">
-    <div class="text-4xl sm:text-6xl font-bold">
-      <span class="text-[#3b82f6]">{displayText}</span><span class:opacity-0={!cursorVisible} class="animate-blink">|</span>
-    </div>
-  </div>
-{/if}
+
 
 <div class="relative overflow-hidden min-h-[600px] max-h-[700px] w-full bg-gradient-to-br from-gray-900 to-black">
   <!-- Video Background -->
