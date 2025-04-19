@@ -26,6 +26,7 @@ export interface Customer {
 export interface Service {
   id: number;
   name: string;
+  price: number;
 }
 
 export interface PaymentMethod {

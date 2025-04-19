@@ -12,8 +12,13 @@
   export let weight = 0;
   export let manualWeightEntry = false;
   export let service: string;
+  let previousService: string | null = null;
+  let displayItems: Item[] = [];
   
-  // Initialize items when itemTypes changes
+  // Keep display items in sync with selectedItems
+  $: displayItems = selectedItems.map(item => ({...item}));
+  
+  // Initialize or update items when itemTypes changes
   $: if (itemTypes.length > 0) {
     selectedItems = itemTypes.map(type => ({
       ...type,
@@ -21,20 +26,20 @@
     }));
   }
   
-  // Reset selections when service changes
-  $: if (service) {
-    selectedItems = itemTypes.map(type => ({
-      ...type,
-      quantity: 0
-    }));
-    weight = 0;
-    manualWeightEntry = false;
+  // Reset selections only when switching to a different service
+  $: if (service && service !== previousService) {
+    if (previousService !== null && service !== previousService) {
+      selectedItems = itemTypes.map(type => ({ ...type, quantity: 0 }));
+      weight = 0;
+      manualWeightEntry = false;
+    }
+    previousService = service;
   }
   
   // Calculate total weight from selected items
-  $: calculatedWeight = selectedItems.reduce((total, item) => {
-    return total + (item.quantity * (item.avg_weight || 0.5));
-  }, 0).toFixed(2);
+  $: calculatedWeight = displayItems.reduce((total, item) => 
+    total + (item.quantity * (item.avg_weight || 0.5)), 0
+  ).toFixed(2);
   
   // Update the weight whenever calculatedWeight changes
   $: if (!manualWeightEntry) {
@@ -45,13 +50,11 @@
   $: displayWeight = manualWeightEntry ? weight : parseFloat(calculatedWeight);
   
   function updateItemQuantity(itemId: string, change: number) {
-    selectedItems = selectedItems.map(item => {
-      if (item.id === itemId) {
-        const newQuantity = Math.max(0, item.quantity + change);
-        return { ...item, quantity: newQuantity };
-      }
-      return item;
-    });
+    selectedItems = selectedItems.map(item => 
+      item.id === itemId 
+        ? { ...item, quantity: Math.max(0, item.quantity + change) }
+        : item
+    );
   }
   
   function getItemIcon(iconName: string): string {
@@ -116,9 +119,8 @@
   }
   
   // Count total items
-  $: totalItems = selectedItems.reduce((total, item) => total + item.quantity, 0);
+  $: totalItems = displayItems.reduce((total, item) => total + item.quantity, 0);
 </script>
-
 <div class="space-y-6">
   <div>
     <div class="flex justify-between items-center mb-4">
@@ -129,7 +131,7 @@
     </div>
     
     <div class="grid grid-cols-1 gap-3">
-      {#each selectedItems as item}
+      {#each displayItems as item}
         <div class="border rounded-lg p-3 flex items-center justify-between {item.quantity > 0 ? 'border-primary-100 bg-primary-50/50' : ''}">
           <div class="flex items-center">
             <div class="w-7 h-7 flex items-center justify-center bg-primary-50 text-primary-600 rounded-full mr-2">

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { fetchLocations, fetchServices } from '$lib/api';
   import { locations, services, currentUser } from '$lib/stores';
   import { goto } from '$app/navigation';
@@ -10,6 +10,7 @@
   import OrderReview from './OrderReview.svelte';
   import LocationCard from './LocationCard.svelte';
   import LoginModal from './LoginModal.svelte';
+  import { browser } from '$app/environment';
   
   // Update steps order
   const steps = ['Select Service', 'Schedule Pickup & Delivery', 'Preferences', 'Delivery Details', 'Review & Submit'];
@@ -81,7 +82,7 @@
     dropoff_zip: '',
     pickup_date: new Date().toISOString().split('T')[0], // Today
     pickup_time: '9AM - 11AM',
-    drop_off_date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+    drop_off_date: new Date(Date.now() + 172800000).toISOString().split('T')[0], // 2 days from now (48 hours)
     drop_off_time: '9AM - 11AM',
     weight: 0
   };
@@ -110,31 +111,59 @@
   
   // Add function to save state
   function saveFormState() {
-    const state = {
-      currentStep,
-      formData,
-      preferences,
-      selectedItems,
-      sameAddress
-    };
-    localStorage.setItem('orderFormState', JSON.stringify(state));
+    if (browser) {
+      const state = {
+        currentStep,
+        formData,
+        preferences,
+        selectedItems,
+        sameAddress,
+        itemTypes
+      };
+      localStorage.setItem('orderFormState', JSON.stringify(state));
+    }
   }
 
   // Add function to restore state
   function restoreFormState() {
-    const savedState = localStorage.getItem('orderFormState');
-    if (savedState) {
-      const state = JSON.parse(savedState);
-      currentStep = state.currentStep;
-      formData = state.formData;
-      preferences = state.preferences;
-      selectedItems = state.selectedItems;
-      sameAddress = state.sameAddress;
-      localStorage.removeItem('orderFormState'); // Clear the saved state
+    if (browser) {
+      const savedState = localStorage.getItem('orderFormState');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        currentStep = state.currentStep;
+        formData = state.formData;
+        preferences = state.preferences;
+        selectedItems = state.selectedItems || [];
+        itemTypes = state.itemTypes || [];
+        sameAddress = state.sameAddress;
+      }
     }
   }
   
-  // Modify onMount to check for saved state
+  // Save state when navigating between steps
+  function goToStep(step: number) {
+    if (step >= 0 && step < steps.length) {
+      saveFormState();
+      currentStep = step;
+      currentStepValid = validateStep(currentStep);
+      
+      // Scroll to the next step
+      setTimeout(() => {
+        if (stepSections[currentStep]) {
+          const yOffset = -80;
+          const element = stepSections[currentStep];
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          
+          window.scrollTo({
+            top: y,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }
+  
+  // Modify onMount to always restore state
   onMount(async () => {
     try {
       await Promise.all([
@@ -142,17 +171,17 @@
         fetchServices()
       ]);
 
-      // Check for auth state and saved form state
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        restoreFormState();
-      }
-      
+      restoreFormState();
       currentStepValid = validateStep(currentStep);
     } catch (error) {
       console.error('Error initializing order form:', error);
     }
   });
+  
+  // Add auto-save functionality when form data changes
+  $: if (browser && (formData || selectedItems || preferences || currentStep)) {
+    saveFormState();
+  }
   
   // Add handleLoginSuccess function
   async function handleLoginSuccess() {
@@ -208,47 +237,85 @@
     currentStepValid = validateStep(currentStep);
   }
   
-  // Fetch items from database based on selected service
-  async function fetchItems(serviceId: string | null = null) {
+  // Add defaultItems definition
+  const defaultItems = [
+    { id: 'shirt', name: 'Shirts', avg_weight: 0.3, icon: 'shirt' },
+    { id: 'pants', name: 'Pants/Jeans', avg_weight: 0.6, icon: 'pants' },
+    { id: 'dress', name: 'Dresses', avg_weight: 0.5, icon: 'dress' },
+    { id: 'sweater', name: 'Sweaters', avg_weight: 0.7, icon: 'sweater' },
+    { id: 'jacket', name: 'Jackets', avg_weight: 1.0, icon: 'jacket' },
+    { id: 'bedding', name: 'Bedding', avg_weight: 2.0, icon: 'bedding' },
+    { id: 'towel', name: 'Towels', avg_weight: 0.5, icon: 'towel' },
+    { id: 'other', name: 'Other Items', avg_weight: 0.5, icon: 'other' }
+  ];
+
+  // Add this function to handle item types update
+  function updateItemTypes(newTypes: any[]) {
+    if (selectedItems.length > 0) {
+      // If we have existing selections, preserve their quantities
+      itemTypes = newTypes.map(newType => {
+        const existingItem = selectedItems.find(item => item.id === newType.id);
+        return {
+          ...newType,
+          quantity: existingItem ? existingItem.quantity : 0
+        };
+      });
+    } else {
+      // If no existing selections, just use the new types
+      itemTypes = newTypes;
+    }
+  }
+
+  // Modify the fetch items function to preserve selections
+  async function fetchItems(serviceId: string) {
+    if (!serviceId) return;
+    
     try {
-      let query = supabase.from('items').select('*');
-      
-      // If a service is selected, filter items by service_id
-      if (serviceId) {
-        query = query.eq('service_id', serviceId);
-      }
-      
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from('items')
+        .select('*')
+        .eq('service_id', serviceId);
+        
       if (error) throw error;
       
-      // Default items if none in database
-      const defaultItems = [
-        { id: 'shirt', name: 'Shirts', avg_weight: 0.3, icon: 'shirt' },
-        { id: 'pants', name: 'Pants/Jeans', avg_weight: 0.6, icon: 'pants' },
-        { id: 'dress', name: 'Dresses', avg_weight: 0.5, icon: 'dress' },
-        { id: 'sweater', name: 'Sweaters', avg_weight: 0.7, icon: 'sweater' },
-        { id: 'jacket', name: 'Jackets', avg_weight: 1.0, icon: 'jacket' },
-        { id: 'bedding', name: 'Bedding', avg_weight: 2.0, icon: 'bedding' },
-        { id: 'towel', name: 'Towels', avg_weight: 0.5, icon: 'towel' },
-        { id: 'other', name: 'Other Items', avg_weight: 0.5, icon: 'other' }
-      ];
-      
-      // Use database items if available, otherwise use defaults
-      itemTypes = data && data.length > 0 ? data : defaultItems;
-      
-      // Initialize selectedItems with current quantities if they exist
-      selectedItems = itemTypes.map(type => ({
-        ...type,
-        quantity: selectedItems.find(item => item.id === type.id)?.quantity || 0
-      }));
-      
-      // Reset weight if service changed
-      if (serviceId !== lastFetchedServiceId) {
-        formData.weight = 0;
-        manualWeightEntry = false;
+      // If we have existing selections for this service, preserve them
+      if (lastFetchedServiceId === serviceId && selectedItems.length > 0) {
+        // Just update itemTypes without resetting quantities
+        itemTypes = (data && data.length > 0 ? data : defaultItems).map(newType => {
+          const existingItem = selectedItems.find(item => item.id === newType.id);
+          return {
+            ...newType,
+            quantity: existingItem ? existingItem.quantity : 0
+          };
+        });
+      } else {
+        // New service selected, reset quantities
+        itemTypes = (data && data.length > 0 ? data : defaultItems).map(type => ({
+          ...type,
+          quantity: 0
+        }));
+        selectedItems = [...itemTypes];
       }
-    } catch (error) {
-      console.error('Error fetching items:', error);
+      
+      lastFetchedServiceId = serviceId;
+    } catch (err) {
+      console.error('Error fetching items:', err);
+      if (lastFetchedServiceId === serviceId && selectedItems.length > 0) {
+        // Preserve quantities even for default items
+        itemTypes = defaultItems.map(newType => {
+          const existingItem = selectedItems.find(item => item.id === newType.id);
+          return {
+            ...newType,
+            quantity: existingItem ? existingItem.quantity : 0
+          };
+        });
+      } else {
+        itemTypes = defaultItems.map(type => ({
+          ...type,
+          quantity: 0
+        }));
+        selectedItems = [...itemTypes];
+      }
     }
   }
   
@@ -325,6 +392,7 @@
         }
       }
 
+      saveFormState(); // Save state before changing step
       if (currentStep === 2) {
         currentStep = 3;
       } else {
@@ -350,24 +418,8 @@
   }
   
   function goToPrevStep() {
-    if (currentStep > 0) {
-      currentStep--;
-      currentStepValid = validateStep(currentStep);
-      
-      // Scroll to the previous step after a small delay with offset
-      setTimeout(() => {
-        if (stepSections[currentStep]) {
-          const yOffset = -80;
-          const element = stepSections[currentStep];
-          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          
-          window.scrollTo({
-            top: y,
-            behavior: 'smooth'
-          });
-        }
-      }, 100);
-    }
+    saveFormState(); // Save state before going back
+    goToStep(currentStep - 1);
   }
   
   // Modify handleSubmit to save state before showing login modal
@@ -507,21 +559,20 @@
   
   // Modify the service selection handler
   function handleServiceSelection(serviceId: string) {
-    formData.service_id = serviceId;
-    currentStep = 0; // Reset to first step
+    // Only reset items if the service actually changed
+    if (formData.service_id !== serviceId) {
+      formData.service_id = serviceId;
+    }
     
-    // Wait for items to be loaded and scroll to them with offset
-    setTimeout(() => {
-      if (itemsSection) {
-        const yOffset = -80;
-        const y = itemsSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        
-        window.scrollTo({
-          top: y,
-          behavior: 'smooth'
-        });
-      }
-    }, 100);
+    // Set pickup date to today and delivery date to 2 days later
+    const today = new Date();
+    formData.pickup_date = today.toISOString().split('T')[0];
+    const deliveryDate = new Date(today);
+    deliveryDate.setDate(today.getDate() + 2);
+    formData.drop_off_date = deliveryDate.toISOString().split('T')[0];
+    
+    currentStep = 0; // Reset to first step
+    saveFormState(); // Save state after changes
   }
 
   // Modify the button click handler in the After 3 PM Message section
@@ -621,6 +672,11 @@
   $: if ($currentUser) {
     fetchCustomerAddress();
   }
+
+  // Add cleanup on component destroy
+  onDestroy(() => {
+    saveFormState(); // Save state when component is destroyed
+  });
 </script>
 
 <div class="w-full">
@@ -896,9 +952,9 @@
                               : 'border-gray-200 hover:border-primary-200 hover:bg-primary-50'}"
                           on:click={() => {
                             formData.pickup_date = date.toISOString().split('T')[0];
-                            // Set delivery date to the day after pickup
+                            // Set delivery date to 2 days after pickup
                             const deliveryDate = new Date(date);
-                            deliveryDate.setDate(date.getDate() + 1);
+                            deliveryDate.setDate(date.getDate() + 2);
                             formData.drop_off_date = deliveryDate.toISOString().split('T')[0];
                           }}
                         >
@@ -1242,31 +1298,50 @@
     
     <!-- Navigation Buttons -->
     <div class="flex justify-between mt-8">
-      <button 
-        type="button"
-        class="px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors
-          {currentStep === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
-        disabled={currentStep === 0}
-        on:click={goToPrevStep}
-      >
-        Previous
-      </button>
+      {#if currentStep > 0}
+        <button
+          type="button"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          on:click={() => goToStep(currentStep - 1)}
+        >
+          <svg class="mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+          </svg>
+          Previous
+        </button>
+      {:else}
+        <div></div>
+      {/if}
       
-      <button 
-        type="button"
-        class="px-4 py-2 text-sm md:text-base bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors
-          {!currentStepValid ? 'opacity-50 cursor-not-allowed' : ''}"
-        disabled={!currentStepValid}
-        on:click={currentStep === 4 ? handleSubmit : handleNextClick}
-      >
-        {#if currentStep === 4}
-          Submit Order
-        {:else if currentStep === 3}
-          Review Order
-        {:else}
+      {#if currentStep < steps.length - 1}
+        <button
+          type="button"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 {!currentStepValid ? 'opacity-50 cursor-not-allowed' : ''}"
+          disabled={!currentStepValid}
+          on:click={() => goToStep(currentStep + 1)}
+        >
           Next
-        {/if}
-      </button>
+          <svg class="ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      {:else}
+        <button
+          type="submit"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 {!currentStepValid ? 'opacity-50 cursor-not-allowed' : ''}"
+          disabled={!currentStepValid || loading}
+        >
+          {#if loading}
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+          {:else}
+            Submit Order
+          {/if}
+        </button>
+      {/if}
     </div>
   {/if}
 </div>
