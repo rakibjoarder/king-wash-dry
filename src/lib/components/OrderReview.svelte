@@ -29,7 +29,6 @@
   export let preferences: any;
   export let selectedItems: any[];
   export let calculateEstimatedPrice: () => number;
-  export let onSubmitOrder: (data: any) => Promise<any>;
   
   let customerData: CustomerData | null = null;
   let loading = true;
@@ -385,7 +384,7 @@
         // Address information
         address: formData.pickup_address,
         city: formData.pickup_city,
-        state: 'USA', // Default state
+        state: 'CA', // Default state
         zip: formData.pickup_zip,
         
         // Additional data
@@ -402,6 +401,9 @@
         promo_code: promoCode || null,
         discount_amount: promoDiscount
       };
+
+      //clear saved state
+      localStorage.removeItem('orderFormState');
       
       console.log('Submitting order data:', orderData);
       
@@ -433,12 +435,14 @@
       }
     } catch (error: unknown) {
       console.error('Order submission error:', error);
+      localStorage.removeItem('orderFormState');
       if (error instanceof Error) {
         paymentError = error.message;
       } else {
         paymentError = 'Failed to process your order. Please try again.';
       }
     } finally {
+      localStorage.removeItem('orderFormState');
       isProcessingPayment = false;
     }
   }

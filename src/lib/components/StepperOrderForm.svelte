@@ -465,98 +465,7 @@
   }
   
 
-  
-  // Modify handleSubmit to save state before showing login modal
-  async function handleSubmit() {
-    if (!$currentUser) {
-      saveFormState(); // Save state before showing login modal
-      showLoginModal = true;
-      return;
-    }
-    
-    loading = true;
-    error = '';
-    
-    try {
-      // Get customer data first
-      const { data: customerData, error: customerError } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('user_id', $currentUser.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (customerError || !customerData) {
-        throw new Error('Failed to retrieve customer information');
-      }
-
-      const orderData = {
-        // Customer information
-        customer_id: customerData.id,
-        first_name: customerData.first_name,
-        last_name: customerData.last_name,
-        email: customerData.email,
-        phone: customerData.phone,
-        
-        // Order details
-        service_id: parseInt(formData.service_id),
-        location_id: 1, // Default location ID
-        weight: formData.weight,
-        total_price: calculateEstimatedPrice(),
-        
-        // Scheduling
-        drop_off_date: formData.drop_off_date,
-        drop_off_time: formData.drop_off_time,
-        pickup_date: formData.pickup_date,
-        pickup_time: formData.pickup_time,
-        
-        // Address information
-        address: formData.pickup_address,
-        city: formData.pickup_city,
-        state: 'CA', // Default state
-        zip: formData.pickup_zip,
-        
-        // Additional data
-        preferences: JSON.stringify(preferences),
-        items: JSON.stringify(selectedItems.filter(item => item.quantity > 0)),
-        delivery_instructions: formData.delivery_instructions
-      };
-      
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(orderData)
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create order');
-      }
-      
-      success = true;
-      localStorage.removeItem('orderFormState');
-      // Reset form data
-      selectedItems = selectedItems.map(item => ({
-        ...item,
-        quantity: 0
-      }));
-      formData.weight = 0;
-      manualWeightEntry = false;
-      goto(`/account?order=${result.id}`);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        error = err.message;
-      } else {
-        error = 'There was an error submitting your order. Please try again.';
-      }
-    } finally {
-      loading = false;
-    }
-  }
+ 
   
   // Update weight based on selected items
   $: {
@@ -802,7 +711,6 @@
           <div class="ml-3">
             <h3 class="font-medium">Self Service</h3>
             <p class="text-sm text-gray-500">Use our facilities to do your own laundry</p>
-            <p class="text-xs text-primary-600 mt-1">Washers starting from $2.50 | Dryers starting from $2.00</p>
           </div>
         </div>
       </button>
@@ -1379,7 +1287,6 @@
             {preferences}
             {selectedItems}
             calculateEstimatedPrice={() => calculateEstimatedPrice()}
-            onSubmitOrder={handleSubmit}
           />
         </div>
       {/if}
