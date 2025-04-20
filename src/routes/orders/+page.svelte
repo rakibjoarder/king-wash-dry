@@ -1,8 +1,11 @@
 <script>
   import { onMount } from 'svelte';
   import { supabase } from '$lib/supabase';
-  import { services, locations } from '$lib/stores';
+  import { services, locations, currentUser } from '$lib/stores';
   import { formatCurrency } from '$lib/utils/formatting';
+  import { goto } from '$app/navigation';
+  // Access the user data from the server
+  let data;
   
   let orders = [];
   let loading = true;
@@ -48,12 +51,28 @@
     }
   }
   
-  // Fetch all orders
-  async function fetchOrders() {
+  // Fetch only the current user's orders
+  async function fetchOrders(data) {
+    if(!data){ 
+      loading = false;
+      return [];}
     try {
       loading = true;
       
-      const { data, error: fetchError } = await supabase
+
+      // Get customer data first
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('user_id', data.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+    if(!customerData){ return [];}
+      // Get the user from the session data
+      // Query orders only for the current user
+      const { data: ordersData, error: fetchError } = await supabase
         .from('orders')
         .select(`
           *,
@@ -63,6 +82,7 @@
             description
           )
         `)
+        .eq('customer_id', customerData?.id)  // Filter by the current user's ID
         .order('created_at', { ascending: false });
       
       if (fetchError) {
@@ -70,7 +90,7 @@
       }
       
       // Parse JSON fields
-      orders = data.map(order => {
+      orders = ordersData.map(order => {
         if (order.items && typeof order.items === 'string') {
           order.items = JSON.parse(order.items);
         }
@@ -88,7 +108,18 @@
     }
   }
   
-  onMount(fetchOrders);
+  onMount(async () => {
+     // Check if user is authenticated
+  const { data: session } = await supabase.auth.getSession();
+  if (!session) {
+    // Redirect to login page if not authenticated
+    goto('/');
+  }else{
+    data = session?.session?.user;
+    console.log("data",data);
+    await fetchOrders(data);
+  }
+  });
 </script>
 
 <svelte:head>

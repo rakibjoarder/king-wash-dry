@@ -538,6 +538,7 @@
       }
       
       success = true;
+      localStorage.removeItem('orderFormState');
       // Reset form data
       selectedItems = selectedItems.map(item => ({
         ...item,

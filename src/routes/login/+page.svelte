@@ -2,18 +2,27 @@
   import { supabase } from '$lib/supabaseClient';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { page } from '$app/stores';
 
   let email = '';
   let password = '';
   let loading = false;
   let error: string | null = null;
+  let redirectUrl = '/dashboard'; // Default redirect
 
   onMount(() => {
+    // Get redirect URL from query params if present
+    const urlParams = new URLSearchParams($page.url.search);
+    const redirectParam = urlParams.get('redirect');
+    if (redirectParam) {
+      redirectUrl = redirectParam;
+    }
+
     // Check if user is already logged in
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        goto('/dashboard');
+        goto(redirectUrl);
       }
     };
     checkUser();
@@ -31,7 +40,7 @@
       if (signInError) throw signInError;
 
       if (data.session) {
-        goto('/dashboard');
+        goto(redirectUrl);
       }
     } catch (e) {
       error = e.message;
@@ -47,7 +56,7 @@
       const { data, error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}${redirectUrl}`
         }
       });
 
