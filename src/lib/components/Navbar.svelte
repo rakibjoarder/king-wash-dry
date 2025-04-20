@@ -127,6 +127,9 @@
 
         <a 
           href="/order"
+          on:click={() => {
+            localStorage.removeItem('orderFormState');
+          }}
           class="group relative px-4 py-2 text-sm font-medium transition-colors duration-200
                  {$page.url.pathname === '/order' ? 
                  'text-blue-600' : 'text-gray-600 hover:text-blue-600'}"
@@ -274,6 +277,9 @@
 
           <a 
             href="/order"
+            on:click={() => {
+              localStorage.removeItem('orderFormState');
+            }}
             class="block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200
                    {$page.url.pathname === '/order' ? 
                    'text-blue-600 bg-blue-50' : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'}"

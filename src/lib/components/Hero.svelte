@@ -30,6 +30,9 @@
             </p>
             <div class="flex flex-wrap gap-4 justify-start">
               <a href="/order" 
+                on:click={() => {
+                 localStorage.removeItem('orderFormState');  
+                }}
                 class="group relative inline-flex items-center px-8 py-4 text-base font-medium overflow-hidden rounded-full bg-[#3b82f6] text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_8px_rgba(59,130,246,0.3)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                 <span class="relative z-10">Schedule Pickup</span>
                 <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-5 w-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

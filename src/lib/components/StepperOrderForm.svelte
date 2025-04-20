@@ -112,15 +112,23 @@
   // Add function to save state
   function saveFormState() {
     if (browser) {
-      const state = {
-        currentStep,
-        formData,
-        preferences,
-        selectedItems,
-        sameAddress,
-        itemTypes
-      };
-      localStorage.setItem('orderFormState', JSON.stringify(state));
+      try {
+        const state = {
+          currentStep,
+          formData: { ...formData },
+          preferences: { 
+            ...preferences,
+            additionalServices: { ...preferences.additionalServices }
+          },
+          selectedItems: [...selectedItems],
+          sameAddress,
+          itemTypes: [...itemTypes]
+        };
+        localStorage.setItem('orderFormState', JSON.stringify(state));
+        console.log('Form state saved successfully, step:', currentStep);
+      } catch (err) {
+        // Silent error handling
+      }
     }
   }
 
@@ -129,23 +137,54 @@
     if (browser) {
       const savedState = localStorage.getItem('orderFormState');
       if (savedState) {
-        const state = JSON.parse(savedState);
-        currentStep = state.currentStep;
-        formData = state.formData;
-        preferences = state.preferences;
-        selectedItems = state.selectedItems || [];
-        itemTypes = state.itemTypes || [];
-        sameAddress = state.sameAddress;
+        try {
+          const state = JSON.parse(savedState);
+          
+          // Set values from saved state
+          currentStep = state.currentStep || 0;
+          
+          // Properly restore formData with all properties
+          if (state.formData) {
+            formData = {
+              ...formData, // Keep default values as fallback
+              ...state.formData // Override with saved values
+            };
+          }
+          
+          // Restore preferences with proper structure
+          if (state.preferences) {
+            preferences = {
+              ...preferences, // Keep default values as fallback
+              ...state.preferences, // Override with saved values
+              // Ensure additionalServices is properly restored
+              additionalServices: {
+                ...preferences.additionalServices,
+                ...(state.preferences.additionalServices || {})
+              }
+            };
+          }
+          
+          selectedItems = Array.isArray(state.selectedItems) ? state.selectedItems : [];
+          itemTypes = Array.isArray(state.itemTypes) ? state.itemTypes : [];
+          sameAddress = state.sameAddress !== undefined ? state.sameAddress : true;
+          
+          return true;
+        } catch (e) {
+          return false;
+        }
+      } else {
+        return false;
       }
     }
+    return false;
   }
   
   // Save state when navigating between steps
-  function goToStep(step: number) {
+  async function goToStep(step: number) {
     if (step >= 0 && step < steps.length) {
       saveFormState();
       currentStep = step;
-      currentStepValid = validateStep(currentStep);
+      updateValidationState();
       
       // Scroll to the next step
       setTimeout(() => {
@@ -160,51 +199,113 @@
           });
         }
       }, 100);
+    }
+  }
+  
+  // Separated the continue flag handling into its own function
+  async function handleContinueFlag() {
+    const continueOrder = localStorage.getItem('continueOrder');
+    if (continueOrder === 'true') {
+      localStorage.removeItem('continueOrder');
+      
+      // Override step and schedule a redraw
+      currentStep = 3;
+      
+      // Update validation for the new step
+      await updateValidationState();
+      
+      // Scroll to the correct section with a delay to ensure rendering
+      setTimeout(() => {
+        if (stepSections[currentStep]) {
+          const yOffset = -80;
+          const element = stepSections[currentStep];
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          
+          window.scrollTo({
+            top: y,
+            behavior: 'smooth'
+          });
+        }
+      }, 500);
+    } else {
+      // Just update validation for the current step
+      await updateValidationState();
     }
   }
   
   // Modify onMount to always restore state
   onMount(async () => {
     try {
+      // First restore form state before fetching data
+      const restored = restoreFormState();
+      
+      // Then fetch locations and services
       await Promise.all([
         fetchLocations(),
         fetchServices()
       ]);
-
-      restoreFormState();
-      currentStepValid = validateStep(currentStep);
+      
+      // Fetch items if we have a service_id from restored state
+      if (restored && formData.service_id) {
+        await fetchItems(formData.service_id);
+      }
+      
+      // IMPORTANT: Wait for the next tick to ensure component is fully initialized
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // THEN update validation and check for continue flag
+      await updateValidationState();
+      handleContinueFlag();
+      
+      // Check session status at initialization
+      await supabase.auth.getSession();
     } catch (error) {
-      console.error('Error initializing order form:', error);
+      // Silent error handling
     }
   });
   
-  // Add auto-save functionality when form data changes
-  $: if (browser && (formData || selectedItems || preferences || currentStep)) {
-    saveFormState();
+  // Add auto-save functionality when form data changes with debounce
+  let saveTimeout: any = null;
+  $: if (browser && (formData || selectedItems || preferences || currentStep !== undefined)) {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      saveFormState();
+      saveTimeout = null;
+    }, 1000); // 300ms debounce
   }
   
   // Add handleLoginSuccess function
   async function handleLoginSuccess() {
     showLoginModal = false;
+    
     // Get the latest session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session && currentStep === 2) {
-      currentStep = 3;
-      currentStepValid = validateStep(currentStep);
+    const { data } = await supabase.auth.getSession();
+    
+    if (data?.session) {
+      // Store a flag to continue the order process if redirect happens
+      localStorage.setItem('continueOrder', 'true');
       
-      // Scroll to the next step
-      setTimeout(() => {
-        if (stepSections[currentStep]) {
-          const yOffset = -80;
-          const element = stepSections[currentStep];
-          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          
-          window.scrollTo({
-            top: y,
-            behavior: 'smooth'
-          });
-        }
-      }, 100);
+      // Continue with the order flow
+      if (currentStep === 2) {
+        // Proceed to delivery details step
+        saveFormState();
+        currentStep = 3;
+        updateValidationState();
+        
+        // Scroll to the next step
+        setTimeout(() => {
+          if (stepSections[currentStep]) {
+            const yOffset = -80;
+            const element = stepSections[currentStep];
+            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            
+            window.scrollTo({
+              top: y,
+              behavior: 'smooth'
+            });
+          }
+        }, 100);
+      }
     }
   }
   
@@ -229,12 +330,19 @@
   // Move the reactive statement after the function definition
   $: totalPrice = calculateEstimatedPrice();
   
+  // Add a function to update validation state
+  async function updateValidationState() {
+    currentStepValid = await validateStep(currentStep);
+  }
+  
   // This reactive statement will update currentStepValid whenever formData changes
-  $: currentStepValid = validateStep(currentStep);
+  $: {
+    updateValidationState();
+  }
   
   // Also specifically watch service_id changes
   $: if (formData.service_id) {
-    currentStepValid = validateStep(currentStep);
+    updateValidationState();
   }
   
   // Add defaultItems definition
@@ -299,7 +407,6 @@
       
       lastFetchedServiceId = serviceId;
     } catch (err) {
-      console.error('Error fetching items:', err);
       if (lastFetchedServiceId === serviceId && selectedItems.length > 0) {
         // Preserve quantities even for default items
         itemTypes = defaultItems.map(newType => {
@@ -326,7 +433,7 @@
   }
   
   // Update the validation function for the new step order
-  function validateStep(step: number): boolean {
+  async function validateStep(step: number): Promise<boolean>  {
     switch(step) {
       case 0: // Service Selection
         return !!formData.service_id && formData.weight > 0;
@@ -339,6 +446,12 @@
                !!formData.drop_off_date && 
                !!formData.drop_off_time;
       case 2: // Preferences
+        //check if user is logged in
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          showLoginModal = true;
+          return false;
+        }
         return formData.weight > 0 && selectedItems.some(item => item.quantity > 0);
       case 3: // Delivery Details
         return !!formData.dropoff_address && 
@@ -351,76 +464,7 @@
     }
   }
   
-  // Modify handleNextClick to save state before showing login modal
-  async function handleNextClick() {
-    if (currentStepValid) {
-      // Add additional weight validation for step 2
-      if (currentStep === 2) {
-        // Recalculate weight to ensure it's up to date
-        const newWeight = selectedItems.reduce((total, item) => {
-          return total + (item.quantity * (item.avg_weight || 0.5));
-        }, 0);
-        
-        if (!manualWeightEntry) {
-          formData.weight = Number(newWeight.toFixed(2));
-        }
-        
-        // Check if weight is still valid after recalculation
-        if (formData.weight <= 0 || !selectedItems.some(item => item.quantity > 0)) {
-          return; // Don't proceed if weight is 0 or no items selected
-        }
-      }
 
-      // Check for authentication after preferences step (step 2)
-      if (currentStep === 2) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          saveFormState(); // Save state before showing login modal
-          showLoginModal = true;
-          return;
-        }
-      }
-
-      // Save customer address when moving from step 3 to 4
-      if (currentStep === 3) {
-        try {
-          await saveCustomerAddress();
-        } catch (err) {
-          console.error('Error saving customer address:', err);
-          error = 'Failed to save address. Please try again.';
-          return;
-        }
-      }
-
-      saveFormState(); // Save state before changing step
-      if (currentStep === 2) {
-        currentStep = 3;
-      } else {
-        currentStep += 1;
-      }
-      
-      currentStepValid = validateStep(currentStep);
-      
-      // Scroll to the next step after a small delay with offset
-      setTimeout(() => {
-        if (stepSections[currentStep]) {
-          const yOffset = -80;
-          const element = stepSections[currentStep];
-          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          
-          window.scrollTo({
-            top: y,
-            behavior: 'smooth'
-          });
-        }
-      }, 100);
-    }
-  }
-  
-  function goToPrevStep() {
-    saveFormState(); // Save state before going back
-    goToStep(currentStep - 1);
-  }
   
   // Modify handleSubmit to save state before showing login modal
   async function handleSubmit() {
@@ -478,8 +522,6 @@
         items: JSON.stringify(selectedItems.filter(item => item.quantity > 0)),
         delivery_instructions: formData.delivery_instructions
       };
-
-      console.log('Submitting order with data:', orderData);
       
       const response = await fetch('/api/orders', {
         method: 'POST',
@@ -505,7 +547,6 @@
       manualWeightEntry = false;
       goto(`/account?order=${result.id}`);
     } catch (err: unknown) {
-      console.error('Error submitting order:', err);
       if (err instanceof Error) {
         error = err.message;
       } else {
@@ -584,7 +625,6 @@
 
   // Function to fetch customer address
   async function fetchCustomerAddress() {
-    console.log('Fetching customer address');
     if (!$currentUser) return;
     
     loading = true;
@@ -622,7 +662,6 @@
         }
       }
     } catch (err) {
-      console.error('Error fetching customer address:', err);
       error = 'Failed to load saved address';
     } finally {
       loading = false;
@@ -660,7 +699,6 @@
         throw new Error('Failed to save address');
       }
     } catch (err) {
-      console.error('Error saving customer address:', err);
       error = 'Failed to save address';
       throw err;
     } finally {
@@ -677,6 +715,56 @@
   onDestroy(() => {
     saveFormState(); // Save state when component is destroyed
   });
+
+  // Add a dedicated function to check login
+  async function checkUserLoggedIn() {
+    const { data } = await supabase.auth.getSession();
+    return !!data?.session;
+  }
+
+  // Modify handleNextClick function to check login after preferences
+  async function handleNextClick() {
+    if (currentStepValid) {
+      // Check for authentication after preferences step (step 2)
+      if (currentStep === 2) {
+        // Check if user is logged in
+        const isLoggedIn = await checkUserLoggedIn();
+        if (!isLoggedIn) {
+          saveFormState(); // Save state before showing login modal
+          showLoginModal = true;
+          return;
+        }
+      }
+
+      // Save customer address when moving from step 3 to 4
+      if (currentStep === 3) {
+        try {
+          await saveCustomerAddress();
+        } catch (err) {
+          error = 'Failed to save address. Please try again.';
+          return;
+        }
+      }
+
+      saveFormState(); // Save state before changing step
+      currentStep += 1;
+      updateValidationState();
+      
+      // Scroll to the next step after a small delay with offset
+      setTimeout(() => {
+        if (stepSections[currentStep]) {
+          const yOffset = -80;
+          const element = stepSections[currentStep];
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          
+          window.scrollTo({
+            top: y,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }
 </script>
 
 <div class="w-full">
@@ -1318,7 +1406,7 @@
           type="button"
           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 {!currentStepValid ? 'opacity-50 cursor-not-allowed' : ''}"
           disabled={!currentStepValid}
-          on:click={() => goToStep(currentStep + 1)}
+          on:click={handleNextClick}
         >
           Next
           <svg class="ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -1326,7 +1414,7 @@
           </svg>
         </button>
       {:else}
-        <button
+        <!-- <button
           type="submit"
           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 {!currentStepValid ? 'opacity-50 cursor-not-allowed' : ''}"
           disabled={!currentStepValid || loading}
@@ -1340,7 +1428,7 @@
           {:else}
             Submit Order
           {/if}
-        </button>
+        </button> -->
       {/if}
     </div>
   {/if}

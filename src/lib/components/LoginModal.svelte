@@ -13,6 +13,27 @@
     try {
       loading = true;
       error = null;
+      
+      // Store return information
+      localStorage.setItem('returnAfterLogin', 'true');
+      
+      // Save the form state with step 2 (so it will continue to step 3)
+      const savedState = localStorage.getItem('orderFormState');
+      if (savedState) {
+        try {
+          // Parse the state
+          const stateObj = JSON.parse(savedState);
+          // Force step to 2 so it will advance to 3 after login
+          stateObj.currentStep = 2;
+          // Save it back
+          localStorage.setItem('lastOrderStep', JSON.stringify(stateObj));
+        } catch (e) {
+          console.error('Error updating form state:', e);
+          // Fallback to direct copy
+          localStorage.setItem('lastOrderStep', savedState);
+        }
+      }
+      
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -37,10 +58,31 @@
     try {
       loading = true;
       error = null;
+      
+      // Store return information
+      localStorage.setItem('returnAfterLogin', 'true');
+      
+      // Save the form state with step 2 (so it will continue to step 3)
+      const savedState = localStorage.getItem('orderFormState');
+      if (savedState) {
+        try {
+          // Parse the state
+          const stateObj = JSON.parse(savedState);
+          // Force step to 2 so it will advance to 3 after login
+          stateObj.currentStep = 2;
+          // Save it back
+          localStorage.setItem('lastOrderStep', JSON.stringify(stateObj));
+        } catch (e) {
+          console.error('Error updating form state:', e);
+          // Fallback to direct copy
+          localStorage.setItem('lastOrderStep', savedState);
+        }
+      }
+      
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.href,
+          redirectTo: window.location.origin,
           skipBrowserRedirect: false
         }
       });
