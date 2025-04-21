@@ -84,7 +84,7 @@
           Take back your time.<br>
           Leave the laundry to us.
         </h2>
-        <a href="#how-it-works" class="text-[#3B82F6] text-lg font-medium hover:text-[#1E3A8A] transition-colors duration-300 flex items-center">
+        <a href="/how-it-works" class="text-[#3B82F6] text-lg font-medium hover:text-[#1E3A8A] transition-colors duration-300 flex items-center">
           How it works 
           <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

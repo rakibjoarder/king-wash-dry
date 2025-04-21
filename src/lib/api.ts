@@ -3,14 +3,22 @@ import { locations, customers, services, orders } from './stores';
 import type { Location, Customer, Service, Order } from './types';
 
 // Locations
-export async function fetchLocations() {
-  const { data, error } = await supabase.from('locations').select('*');
-  if (error) {
+export async function fetchLocations(includeInactive = false) {
+  try {
+    const url = `/api/locations${includeInactive ? '?includeInactive=true' : ''}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch locations: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    locations.set(data);
+    return data;
+  } catch (error) {
     console.error('Error fetching locations:', error);
     return [];
   }
-  locations.set(data);
-  return data;
 }
 
 // Customers
@@ -65,7 +73,17 @@ export async function fetchOrders() {
   return data;
 }
 
-export async function createOrUpdateCustomer(customerData) {
+export async function createOrUpdateCustomer(customerData: {
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  user_id?: string;
+}) {
   // First check if the customer exists
   const { data: existingCustomers, error: searchError } = await supabase
     .from('customers')

@@ -106,28 +106,13 @@
 
     <!-- Location Cards -->
     {#if $locations && $locations.length > 0}
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {#each Object.entries(groupedLocations) as [city, cityLocations], cityIndex}
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-8">
+        {#each $locations as location, index}
           <div
-            in:fly={{ y: 20, duration: 400, delay: cityIndex * 200 }}
-            class="bg-white rounded-lg shadow-md overflow-hidden"
+            in:fly={{ y: 20, duration: 400, delay: index * 100 }}
+            class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
           >
-            <div class="bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2">
-              <div class="flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-white">
-                  {city.charAt(0).toUpperCase() + city.slice(1)}
-                </h3>
-                <span class="text-sm text-white/90">
-                  {getLocationCount(city)} {getLocationCount(city) === 1 ? 'location' : 'locations'}
-                </span>
-              </div>
-            </div>
-            
-            <div class="divide-y divide-gray-100">
-              {#each cityLocations as location}
-                <LocationCard {location} />
-              {/each}
-            </div>
+            <LocationCard {location} showMap={true} />
           </div>
         {/each}
       </div>

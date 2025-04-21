@@ -7,6 +7,8 @@ export interface Location {
   zip: string;
   phone: string;
   hours: string;
+  image_url?: string;
+  is_active?: boolean;
 }
 
 export interface Customer {

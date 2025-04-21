@@ -10,7 +10,7 @@
   
   onMount(async () => {
     await Promise.all([
-      fetchLocations(),
+      fetchLocations(false),
       fetchServices()
     ]);
   });
