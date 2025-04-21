@@ -11,7 +11,21 @@ const config = {
 		// adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.
 		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
 		// See https://kit.svelte.dev/docs/adapters for more information about adapters.
-		adapter: adapter()
+		adapter: adapter(),
+		
+		// Handle HTTP errors during prerendering
+		prerender: {
+			handleHttpError: ({ path, referrer, message }) => {
+				// If the error is about an API endpoint during prerendering, ignore it
+				if (path.startsWith('/api/')) {
+					console.warn(`Ignoring error during prerendering for API path: ${path}`);
+					return;
+				}
+				
+				// Otherwise throw the error
+				throw new Error(`${message} (${path}${referrer ? ` - referrer: ${referrer}` : ''})`);
+			}
+		}
 	}
 };
 
